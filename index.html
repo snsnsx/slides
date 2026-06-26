@@ -44,7 +44,7 @@
     background:var(--panel); border-bottom:1px solid var(--line); user-select:none;
   }
   .brand{display:flex; align-items:center; gap:9px; font-weight:600; letter-spacing:.02em}
-  .brand .mark{width:13px; height:13px; background:var(--ink); border-radius:2px}
+  .brand .mark{width:14px; height:14px; background:var(--ink); border-radius:7px}
   .brand small{font-weight:400; color:var(--muted); letter-spacing:.04em; text-transform:uppercase; font-size:10px}
   .sep{width:1px; height:22px; background:var(--line); margin:0 2px}
   .spacer{flex:1}
@@ -126,8 +126,8 @@
   .grid-overlay .bounds{position:absolute; inset:0; outline:1px solid var(--grid-strong)}
 
   /* Elements */
-  .el{position:absolute; overflow:hidden}
-  .el .el-content{width:100%; height:100%; display:flex; flex-direction:column; outline:none; word-break:break-word}
+  .el{position:absolute; overflow:visible}
+  .el .el-content{width:100%; height:100%; display:flex; flex-direction:column; outline:none; word-break:break-word; overflow:hidden}
   .el.text .el-content, .el.heading .el-content{padding:2px 4px}
   .el .line{width:100%; white-space:pre-wrap}
   .el.math .el-content{flex-direction:row; align-items:center}
@@ -144,15 +144,23 @@
   .editing .el{cursor:default}
   .el.selectable{cursor:move}
   .el.selected{outline:1.5px solid var(--sel); outline-offset:0}
-  .handle{position:absolute; width:9px; height:9px; background:#fff; border:1.5px solid var(--sel); border-radius:2px; z-index:5}
-  .handle.h-nw{left:-5px; top:-5px; cursor:nwse-resize}
-  .handle.h-ne{right:-5px; top:-5px; cursor:nesw-resize}
-  .handle.h-sw{left:-5px; bottom:-5px; cursor:nesw-resize}
-  .handle.h-se{right:-5px; bottom:-5px; cursor:nwse-resize}
-  .handle.h-n{left:50%; top:-5px; transform:translateX(-50%); cursor:ns-resize}
-  .handle.h-s{left:50%; bottom:-5px; transform:translateX(-50%); cursor:ns-resize}
-  .handle.h-w{left:-5px; top:50%; transform:translateY(-50%); cursor:ew-resize}
-  .handle.h-e{right:-5px; top:50%; transform:translateY(-50%); cursor:ew-resize}
+  .handle{position:absolute; width:11px; height:11px; background:#fff; border:1.5px solid var(--sel); border-radius:2px; z-index:6; box-shadow:0 1px 3px rgba(0,0,0,.22)}
+  /* generous invisible grab area so handles are easy to hit (bigger than they look) */
+  .handle::after{content:""; position:absolute; left:50%; top:50%; width:26px; height:26px; transform:translate(-50%,-50%)}
+  .handle.h-n::after,.handle.h-s::after{width:44px; height:24px}
+  .handle.h-e::after,.handle.h-w::after{width:24px; height:44px}
+  .handle:hover{background:var(--sel); transform-origin:center; box-shadow:0 0 0 3px rgba(26,26,26,.14), 0 1px 3px rgba(0,0,0,.22)}
+  .handle.h-nw{left:-5.5px; top:-5.5px; cursor:nwse-resize}
+  .handle.h-ne{right:-5.5px; top:-5.5px; cursor:nesw-resize}
+  .handle.h-sw{left:-5.5px; bottom:-5.5px; cursor:nesw-resize}
+  .handle.h-se{right:-5.5px; bottom:-5.5px; cursor:nwse-resize}
+  .handle.h-n{left:50%; top:-5.5px; transform:translateX(-50%); cursor:ns-resize}
+  .handle.h-s{left:50%; bottom:-5.5px; transform:translateX(-50%); cursor:ns-resize}
+  .handle.h-w{left:-5.5px; top:50%; transform:translateY(-50%); cursor:ew-resize}
+  .handle.h-e{right:-5.5px; top:50%; transform:translateY(-50%); cursor:ew-resize}
+  /* keep midpoint handles centred on hover (don't let the hover rule drop the translate) */
+  .handle.h-n:hover,.handle.h-s:hover{transform:translateX(-50%)}
+  .handle.h-w:hover,.handle.h-e:hover{transform:translateY(-50%)}
 
   /* ---------- Inspector ---------- */
   .insp{background:var(--panel); border-left:1px solid var(--line); display:flex; flex-direction:column; overflow-y:auto}
@@ -306,7 +314,7 @@
     <div class="spacer"></div>
     <button class="tool icon-only" id="btn-grid" title="Сетка — G"><span class="ico" data-i="grid"></span></button>
     <button class="tool icon-only" id="btn-nums" title="Нумерация слайдов"><span class="ico" data-i="nums"></span></button>
-    <button class="tool icon-only" id="btn-fit" title="Авторазмер текста и формул под кегль"><span class="ico" data-i="fit"></span></button>
+    <button class="tool icon-only" id="btn-fit" title="Авторазмер текста и формул под содержимое (ширина и высота)"><span class="ico" data-i="fit"></span></button>
     <button class="tool ghost" id="btn-present" title="Показ — P"><span class="ico" data-i="play"></span>Показ</button>
     <div class="save-status" id="save-status"></div>
     <div class="menu" id="export-menu">
@@ -386,6 +394,8 @@
         <div class="kr"><span>Редактировать содержимое</span><span><kbd>Enter</kbd> · строка снизу</span></div>
         <div class="kr"><span>Выйти из редактирования</span><span><kbd>Esc</kbd> <kbd>⇧↵</kbd></span></div>
         <div class="kr"><span>Размер кегля</span><span><kbd>=</kbd> <kbd>−</kbd></span></div>
+        <div class="kr"><span>Высота блока: меньше / больше</span><span><kbd>.</kbd> <kbd>/</kbd></span></div>
+        <div class="kr"><span>Ширина блока: меньше / больше</span><span><kbd>⇧ .</kbd> <kbd>⇧ /</kbd></span></div>
         <div class="kr"><span>Дублировать</span><kbd>⌘/Ctrl D</kbd></div>
         <div class="kr"><span>Копировать / вставить</span><span><kbd>⌘/Ctrl C</kbd> <kbd>V</kbd></span></div>
         <div class="kr"><span>Вырезать</span><kbd>⌘/Ctrl X</kbd></div>
@@ -396,7 +406,7 @@
         <div class="kr"><span>Отменить / вернуть</span><span><kbd>⌘/Ctrl Z</kbd> <kbd>⇧Z</kbd></span></div>
         <div class="kr"><span>Показать сетку</span><kbd>G</kbd></div>
         <div class="kr"><span>Нумерация слайдов</span><span style="color:var(--muted)">кнопка № на панели</span></div>
-        <div class="kr"><span>Авторазмер под кегль</span><span style="color:var(--muted)">кнопка на панели</span></div>
+        <div class="kr"><span>Авторазмер под содержимое</span><span style="color:var(--muted)">кнопка на панели</span></div>
         <div class="kr"><span>Сохранить проект</span><kbd>⌘/Ctrl S</kbd></div>
         <div class="kr"><span>Эта справка</span><kbd>?</kbd></div>
 
@@ -984,6 +994,18 @@ function naturalTextHeight(el){
   host.removeChild(box);
   return h;
 }
+function naturalTextWidth(el){
+  // intrinsic width of the content with no wrapping (widest explicit line)
+  const host = measureHost();
+  const probe = document.createElement('div');
+  probe.style.cssText = 'display:inline-block;white-space:pre;font-family:var(--serif);line-height:1.18;'+
+    'font-size:'+el.fontSize+'px;font-weight:'+(el.bold?600:400)+';font-style:'+(el.italic?'italic':'normal');
+  probe.textContent = el.text && el.text.length ? el.text : ' ';
+  host.appendChild(probe);
+  const w = probe.getBoundingClientRect().width;
+  host.removeChild(probe);
+  return w;
+}
 function naturalMathSize(el){
   const host = measureHost();
   const box = document.createElement('div');
@@ -997,6 +1019,16 @@ function naturalMathSize(el){
 }
 function applyAutoFit(el){
   if(el.type==='text'||el.type==='heading'){
+    // --- width: hug the content, capped to the grid, keeping the visual anchor ---
+    const oldGx = el.gx, oldGw = el.gw;
+    const naturalW = naturalTextWidth(el);
+    const gw = clamp(Math.ceil((naturalW + 8 + 0.5)/CELL), 1, COLS); // +8 ≈ horizontal padding
+    let gx = oldGx;
+    if(el.align==='center')      gx = Math.round(oldGx + oldGw/2 - gw/2);
+    else if(el.align==='right')  gx = (oldGx + oldGw) - gw;
+    el.gw = gw;
+    el.gx = clamp(gx, 0, COLS - gw);
+    // --- height: measured at the resolved width ---
     const h = naturalTextHeight(el);
     const gh = clamp(Math.ceil((h + 0.5)/CELL), 1, ROWS);
     el.gh = gh;
@@ -1185,6 +1217,15 @@ function moveSelected(dx,dy){
   el.gx=clamp(el.gx+dx,0,COLS-el.gw);
   el.gy=clamp(el.gy+dy,0,ROWS-el.gh);
   liveUpdateEl(el);
+}
+function resizeSelected(dw,dh){
+  const el=findEl(state.selected); if(!el) return;
+  const ngw=clamp(el.gw+dw, 1, COLS-el.gx);
+  const ngh=clamp(el.gh+dh, 1, ROWS-el.gy);
+  if(ngw===el.gw && ngh===el.gh) return;          // already at a grid limit
+  pushHistory();
+  el.gw=ngw; el.gh=ngh;
+  liveUpdateEl(el); scheduleThumb();
 }
 function selectNext(dir){
   const s=curSlide(); if(!s.elements.length) return;
@@ -1391,6 +1432,15 @@ document.addEventListener('keydown', e=>{
     }
   }
 
+  // Resize selected element with the physical . and / keys (layout-independent):
+  //   .  height −   ·   /  height +   ·   ⇧.  width −   ·   ⇧/  width +
+  if(!meta && state.selected && (e.code==='Period'||e.code==='Slash')){
+    e.preventDefault();
+    if(e.code==='Period'){ e.shiftKey ? resizeSelected(-1,0) : resizeSelected(0,-1); }
+    else                 { e.shiftKey ? resizeSelected( 1,0) : resizeSelected(0, 1); }
+    return;
+  }
+
   // Navigation / structural keys (layout-independent by nature)
   switch(e.key){
     case 'ArrowLeft': if(state.selected){ e.preventDefault(); moveSelected(-1,0);} else { e.preventDefault(); gotoSlide(state.current-1);} return;
@@ -1436,7 +1486,7 @@ function toggleAutoFit(){
   if(state.autoFit){
     pushHistory();
     autoFitAll();
-    toast('Авторазмер включён · блоки подогнаны под кегль');
+    toast('Авторазмер включён · ширина и высота под содержимое');
   } else {
     toast('Авторазмер выключен');
   }
@@ -1531,7 +1581,7 @@ function buildExportHTML(){
 '*{box-sizing:border-box;margin:0;padding:0}'+
 'html,body{height:100%}'+
 'body{background:#0e0e0e;font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Palatino,Georgia,"Times New Roman",serif;overflow:hidden;display:flex;align-items:center;justify-content:center}'+
-'#deck{position:relative;width:'+REF_W+'px;height:'+REF_H+'px}'+
+'#deck{position:relative;width:'+REF_W+'px;height:'+REF_H+'px;flex:none;transform-origin:center center}'+
 '.slide{position:absolute;left:0;top:0;width:'+REF_W+'px;height:'+REF_H+'px;background:#fff;transform-origin:top left;opacity:0;pointer-events:none;transition:opacity .25s ease}'+
 '.slide.active{opacity:1;pointer-events:auto}'+
 '.el math{font-size:1em}'+
@@ -1547,7 +1597,7 @@ function buildExportHTML(){
 '(function(){'+
 'var deck=document.getElementById("deck"),slides=Array.prototype.slice.call(document.querySelectorAll(".slide"));'+
 'var i=0;'+
-'function fit(){var s=Math.min(innerWidth/'+REF_W+',innerHeight/'+REF_H+');deck.style.transform="scale("+s+")";deck.style.position="absolute";deck.style.left=(innerWidth-'+REF_W+'*s)/2+"px";deck.style.top=(innerHeight-'+REF_H+'*s)/2+"px";}'+
+'function fit(){var s=Math.min(innerWidth/'+REF_W+',innerHeight/'+REF_H+');deck.style.transform="scale("+s+")";}'+
 'function show(n){i=Math.max(0,Math.min(slides.length-1,n));slides.forEach(function(s,k){s.classList.toggle("active",k===i);});var c=document.getElementById("ctr");if(c)c.textContent=(i+1)+" / "+slides.length;}'+
 'function nav(d){show(i+d);}'+
 'addEventListener("resize",fit);'+

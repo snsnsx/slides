@@ -1079,7 +1079,7 @@ function addElement(type){
   let el;
   if(type==='heading') el = mk('heading', {gx:1,gy:1,gw:14,gh:1}, defaultText('heading'));
   else if(type==='text') el = mk('text', centeredPos(8,2), defaultText('text'));
-  else if(type==='math') el = mk('math', centeredPos(6,2), {latex:'x^2-12', fontSize:42, align:'center', color:INK_COLORS[0]});
+  else if(type==='math') el = mk('math', centeredPos(6,2), {latex:'e^\{i\\pi\}+1=0', fontSize:42, align:'center', color:INK_COLORS[0]});
   curSlide().elements.push(el);
   state.selected = el.id;
   if(state.autoFit && isTextLike(el)) applyAutoFit(el);

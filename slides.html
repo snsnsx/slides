@@ -1,0 +1,1300 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Slides — академический редактор</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<style>
+  :root{
+    --bg:#e9e9e7;
+    --panel:#ffffff;
+    --panel-2:#fafafa;
+    --ink:#1a1a1a;
+    --ink-2:#4a4a4a;
+    --muted:#8a8a87;
+    --line:#e2e2df;
+    --line-2:#d4d4d0;
+    --slide:#ffffff;
+    --grid:rgba(26,26,26,.07);
+    --grid-strong:rgba(26,26,26,.16);
+    --sel:#1a1a1a;
+    --hover:#f2f2f0;
+    --active:#1a1a1a;
+    --active-ink:#ffffff;
+    --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Times New Roman", serif;
+    --radius:3px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:var(--ui); color:var(--ink); background:var(--bg);
+    font-size:13px; line-height:1.45; overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit; font-size:inherit; color:inherit; cursor:pointer}
+  ::selection{background:#1a1a1a; color:#fff}
+
+  /* ---------- App shell ---------- */
+  .app{display:grid; grid-template-rows:auto 1fr; height:100vh}
+  .topbar{
+    display:flex; align-items:center; gap:14px; padding:0 14px; height:46px;
+    background:var(--panel); border-bottom:1px solid var(--line); user-select:none;
+  }
+  .brand{display:flex; align-items:center; gap:9px; font-weight:600; letter-spacing:.02em}
+  .brand .mark{width:13px; height:13px; background:var(--ink); border-radius:2px}
+  .brand small{font-weight:400; color:var(--muted); letter-spacing:.04em; text-transform:uppercase; font-size:10px}
+  .sep{width:1px; height:22px; background:var(--line); margin:0 2px}
+  .spacer{flex:1}
+
+  .tool{
+    display:inline-flex; align-items:center; gap:7px; height:30px; padding:0 11px;
+    background:transparent; border:1px solid transparent; border-radius:var(--radius);
+    color:var(--ink-2); white-space:nowrap;
+  }
+  .tool:hover{background:var(--hover); color:var(--ink)}
+  .tool:active{transform:translateY(.5px)}
+  .tool .ico{width:15px; height:15px; display:inline-flex}
+  .tool.ghost{border-color:var(--line-2)}
+  .tool.solid{background:var(--ink); color:#fff; border-color:var(--ink)}
+  .tool.solid:hover{background:#000}
+  .tool.icon-only{padding:0; width:30px; justify-content:center}
+
+  .menu{position:relative}
+  .menu-pop{
+    position:absolute; top:36px; right:0; background:var(--panel); border:1px solid var(--line-2);
+    border-radius:var(--radius); box-shadow:0 10px 30px rgba(0,0,0,.12); min-width:210px; padding:6px;
+    z-index:60; display:none;
+  }
+  .menu.open .menu-pop{display:block}
+  .menu-item{display:flex; align-items:center; gap:9px; width:100%; padding:8px 9px; background:none; border:none; border-radius:2px; text-align:left}
+  .menu-item:hover{background:var(--hover)}
+  .menu-item .k{margin-left:auto; color:var(--muted); font-size:11px}
+  .menu-div{height:1px; background:var(--line); margin:5px 2px}
+
+  /* ---------- Body columns ---------- */
+  .body{display:grid; grid-template-columns:188px 1fr 248px; min-height:0}
+  .col{min-height:0; overflow:hidden}
+
+  /* Slides rail */
+  .rail{background:var(--panel-2); border-right:1px solid var(--line); display:flex; flex-direction:column}
+  .rail-head{display:flex; align-items:center; justify-content:space-between; padding:11px 12px 9px; color:var(--muted); font-size:10px; letter-spacing:.08em; text-transform:uppercase}
+  .rail-list{flex:1; overflow-y:auto; padding:4px 10px 12px; display:flex; flex-direction:column; gap:8px}
+  .thumb-wrap{display:flex; gap:8px; align-items:flex-start}
+  .thumb-no{width:14px; text-align:right; color:var(--muted); font-size:10px; padding-top:3px; flex:none; font-variant-numeric:tabular-nums}
+  .thumb{
+    position:relative; flex:1; aspect-ratio:16/9; background:var(--slide);
+    border:1px solid var(--line-2); border-radius:2px; overflow:hidden; cursor:pointer;
+    box-shadow:0 1px 2px rgba(0,0,0,.04);
+  }
+  .thumb.active{border-color:var(--ink); box-shadow:0 0 0 1.5px var(--ink)}
+  .thumb .mini{position:absolute; left:0; top:0; width:1280px; height:720px; transform-origin:top left}
+  .thumb .del{
+    position:absolute; top:3px; right:3px; width:18px; height:18px; border:none; border-radius:3px;
+    background:rgba(255,255,255,.85); color:var(--ink-2); display:none; align-items:center; justify-content:center;
+    line-height:1; padding:0;
+  }
+  .thumb-wrap:hover .del{display:flex}
+  .thumb .del:hover{background:#1a1a1a; color:#fff}
+  .rail-add{margin:0 10px 12px; height:34px; border:1px dashed var(--line-2); background:transparent; border-radius:var(--radius); color:var(--ink-2); display:flex; align-items:center; justify-content:center; gap:7px}
+  .rail-add:hover{border-color:var(--ink); color:var(--ink); background:var(--panel)}
+
+  /* Stage */
+  .stage-col{background:var(--bg); position:relative; display:flex; align-items:center; justify-content:center; padding:26px}
+  .stage-frame{position:relative}
+  #stage{
+    position:relative; width:1280px; height:720px; background:var(--slide);
+    transform-origin:center center; box-shadow:0 4px 28px rgba(0,0,0,.12), 0 0 0 1px var(--line-2);
+  }
+  .grid-overlay{position:absolute; pointer-events:none; opacity:0; transition:opacity .12s ease}
+  .grid-overlay.show{opacity:1}
+  .grid-overlay .lines{
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(to right, var(--grid) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+  }
+  .grid-overlay.dragging .lines{
+    background-image:
+      linear-gradient(to right, var(--grid-strong) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-strong) 1px, transparent 1px);
+  }
+  .grid-overlay .bounds{position:absolute; inset:0; outline:1px solid var(--grid-strong)}
+
+  /* Elements */
+  .el{position:absolute; overflow:hidden}
+  .el .el-content{width:100%; height:100%; display:flex; flex-direction:column; outline:none; word-break:break-word}
+  .el.text .el-content, .el.heading .el-content{padding:2px 4px}
+  .el .line{width:100%; white-space:pre-wrap}
+  .el.math .el-content{flex-direction:row; align-items:center}
+  .el.math .katex-host{width:100%; overflow:hidden}
+  .el.math .katex-display{margin:0}
+  .el.image{overflow:visible}
+  .img-frame{
+    width:100%; height:100%; background:#fff; padding:12px; border:1px solid #e7e7e4;
+    box-shadow:0 10px 30px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.10);
+  }
+  .img-frame img{display:block; width:100%; height:100%}
+
+  /* editor interactivity */
+  .editing .el{cursor:default}
+  .el.selectable{cursor:move}
+  .el.selected{outline:1.5px solid var(--sel); outline-offset:0}
+  .el.editing-text{cursor:text}
+  .handle{position:absolute; width:9px; height:9px; background:#fff; border:1.5px solid var(--sel); border-radius:2px; z-index:5}
+  .handle.h-nw{left:-5px; top:-5px; cursor:nwse-resize}
+  .handle.h-ne{right:-5px; top:-5px; cursor:nesw-resize}
+  .handle.h-sw{left:-5px; bottom:-5px; cursor:nesw-resize}
+  .handle.h-se{right:-5px; bottom:-5px; cursor:nwse-resize}
+  .handle.h-n{left:50%; top:-5px; transform:translateX(-50%); cursor:ns-resize}
+  .handle.h-s{left:50%; bottom:-5px; transform:translateX(-50%); cursor:ns-resize}
+  .handle.h-w{left:-5px; top:50%; transform:translateY(-50%); cursor:ew-resize}
+  .handle.h-e{right:-5px; top:50%; transform:translateY(-50%); cursor:ew-resize}
+
+  /* ---------- Inspector ---------- */
+  .insp{background:var(--panel); border-left:1px solid var(--line); display:flex; flex-direction:column; overflow-y:auto}
+  .insp-empty{padding:30px 20px; color:var(--muted); text-align:center; margin-top:8px}
+  .insp-empty .ico{display:block; margin:0 auto 12px; width:26px; height:26px; opacity:.4}
+  .insp-empty kbd{font-family:var(--ui)}
+  .group{padding:14px 16px; border-bottom:1px solid var(--line)}
+  .group:last-child{border-bottom:none}
+  .group-title{font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:0 0 11px; display:flex; align-items:center; justify-content:space-between}
+  .group-title .badge{color:var(--ink); letter-spacing:.02em; text-transform:none; font-size:11px}
+  .row{display:flex; align-items:center; gap:8px; margin-bottom:9px}
+  .row:last-child{margin-bottom:0}
+  .row .lbl{width:48px; color:var(--muted); flex:none; font-size:11px}
+  .seg{display:inline-flex; border:1px solid var(--line-2); border-radius:var(--radius); overflow:hidden}
+  .seg button{padding:6px 0; width:34px; background:var(--panel); border:none; border-right:1px solid var(--line-2); color:var(--ink-2); display:flex; align-items:center; justify-content:center}
+  .seg button:last-child{border-right:none}
+  .seg button:hover{background:var(--hover)}
+  .seg button.on{background:var(--ink); color:#fff}
+  .seg.grow{display:flex; flex:1}
+  .seg.grow button{flex:1; width:auto}
+  .stepper{display:inline-flex; align-items:center; border:1px solid var(--line-2); border-radius:var(--radius); overflow:hidden; flex:1}
+  .stepper button{width:26px; height:30px; background:var(--panel); border:none; color:var(--ink-2)}
+  .stepper button:hover{background:var(--hover)}
+  .stepper input{flex:1; width:100%; border:none; text-align:center; padding:6px 0; font-variant-numeric:tabular-nums; outline:none; background:transparent; -moz-appearance:textfield}
+  .stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none}
+  .swatches{display:flex; gap:6px}
+  .sw{width:24px; height:24px; border-radius:50%; border:1px solid var(--line-2); cursor:pointer; padding:0}
+  .sw.on{box-shadow:0 0 0 2px var(--panel), 0 0 0 3.5px var(--ink)}
+  textarea.tex{
+    width:100%; min-height:84px; resize:vertical; border:1px solid var(--line-2); border-radius:var(--radius);
+    padding:9px 10px; font-family:ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size:12px; line-height:1.5;
+    outline:none; background:var(--panel-2); color:var(--ink);
+  }
+  textarea.tex:focus{border-color:var(--ink); background:var(--panel)}
+  .tex-hint{margin-top:7px; color:var(--muted); font-size:11px}
+  .tex-hint code{background:var(--panel-2); padding:1px 4px; border-radius:3px; border:1px solid var(--line)}
+  .full-btn{width:100%; height:32px; border:1px solid var(--line-2); border-radius:var(--radius); background:var(--panel); color:var(--ink-2); display:flex; align-items:center; justify-content:center; gap:7px}
+  .full-btn:hover{background:var(--hover); color:var(--ink)}
+  .danger:hover{background:#1a1a1a; color:#fff; border-color:#1a1a1a}
+  .pos-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .pos-grid .cell{display:flex; align-items:center; gap:6px}
+  .pos-grid .cell .lbl{width:14px}
+
+  /* ---------- Present ---------- */
+  .present{position:fixed; inset:0; background:#0e0e0e; z-index:200; display:none; align-items:center; justify-content:center}
+  .present.show{display:flex}
+  #present-stage{position:relative; width:1280px; height:720px; background:#fff; transform-origin:center center; box-shadow:0 0 60px rgba(0,0,0,.6)}
+  .present-hud{position:fixed; bottom:18px; right:22px; color:rgba(255,255,255,.55); font-size:12px; letter-spacing:.03em; font-variant-numeric:tabular-nums; display:flex; gap:14px; align-items:center}
+  .present-hud .pbtn{background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); color:rgba(255,255,255,.7); width:28px; height:28px; border-radius:4px}
+  .present-hud .pbtn:hover{background:rgba(255,255,255,.16)}
+
+  /* ---------- Help ---------- */
+  .overlay{position:fixed; inset:0; background:rgba(20,20,20,.42); z-index:300; display:none; align-items:center; justify-content:center; padding:24px}
+  .overlay.show{display:flex}
+  .sheet{background:var(--panel); border-radius:6px; width:min(620px,100%); max-height:86vh; overflow:auto; box-shadow:0 24px 70px rgba(0,0,0,.3)}
+  .sheet-head{display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--line)}
+  .sheet-head h2{margin:0; font-size:15px; font-weight:600}
+  .sheet-body{padding:8px 22px 22px}
+  .keys{display:grid; grid-template-columns:1fr 1fr; gap:0 36px}
+  .keys h3{grid-column:1/-1; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:18px 0 6px}
+  .keys .kr{display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px dotted var(--line)}
+  .keys .kr span{color:var(--ink-2)}
+  kbd{font-family:var(--ui); font-size:11px; background:var(--panel-2); border:1px solid var(--line-2); border-bottom-width:2px; border-radius:4px; padding:2px 6px; color:var(--ink); white-space:nowrap}
+  .x-btn{border:none; background:none; width:30px; height:30px; border-radius:4px; color:var(--muted)}
+  .x-btn:hover{background:var(--hover); color:var(--ink)}
+
+  /* toast */
+  #toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); background:#1a1a1a; color:#fff; padding:10px 16px; border-radius:6px; font-size:12px; opacity:0; pointer-events:none; transition:.22s ease; z-index:400; box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  #toast.busy::before{content:""; display:inline-block; width:11px; height:11px; margin-right:8px; vertical-align:-1px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  svg{display:block}
+  @media (prefers-reduced-motion: reduce){*{transition:none !important; animation:none !important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="brand"><span class="mark"></span>Slides <small>academic</small></div>
+    <div class="sep"></div>
+    <button class="tool" data-add="heading" title="Заголовок — H"><span class="ico" data-i="heading"></span>Заголовок</button>
+    <button class="tool" data-add="text" title="Текст — T"><span class="ico" data-i="text"></span>Текст</button>
+    <button class="tool" data-add="math" title="Формула — F"><span class="ico" data-i="math"></span>Формула</button>
+    <button class="tool" data-add="image" title="Изображение — I"><span class="ico" data-i="image"></span>Изображение</button>
+    <div class="spacer"></div>
+    <button class="tool icon-only" id="btn-grid" title="Сетка — G"><span class="ico" data-i="grid"></span></button>
+    <button class="tool ghost" id="btn-present" title="Показ — P"><span class="ico" data-i="play"></span>Показ</button>
+    <div class="menu" id="export-menu">
+      <button class="tool solid" id="btn-export"><span class="ico" data-i="download"></span>Экспорт<span class="ico" data-i="chev"></span></button>
+      <div class="menu-pop">
+        <button class="menu-item" data-exp="html"><span class="ico" data-i="html"></span>HTML (всё внутри) <span class="k">авто-сборка медиа</span></button>
+        <button class="menu-item" data-exp="pptx"><span class="ico" data-i="pptx"></span>PowerPoint (.pptx) <span class="k">опционально</span></button>
+        <div class="menu-div"></div>
+        <button class="menu-item" data-exp="save"><span class="ico" data-i="save"></span>Сохранить проект <span class="k">.json</span></button>
+        <button class="menu-item" data-exp="open"><span class="ico" data-i="open"></span>Открыть проект <span class="k">.json</span></button>
+      </div>
+    </div>
+    <div class="sep"></div>
+    <button class="tool icon-only" id="btn-help" title="Горячие клавиши — ?"><span class="ico" data-i="help"></span></button>
+  </header>
+
+  <!-- Body -->
+  <div class="body">
+    <aside class="col rail">
+      <div class="rail-head"><span>Слайды</span><span id="slide-count">1</span></div>
+      <div class="rail-list" id="rail-list"></div>
+      <button class="rail-add" id="rail-add"><span class="ico" data-i="plus"></span>Новый слайд</button>
+    </aside>
+
+    <main class="col stage-col" id="stage-col">
+      <div class="stage-frame">
+        <div id="stage" class="editing"></div>
+        <div class="grid-overlay" id="grid-overlay"><div class="lines"></div><div class="bounds"></div></div>
+      </div>
+    </main>
+
+    <aside class="col insp" id="inspector"></aside>
+  </div>
+</div>
+
+<!-- Present overlay -->
+<div class="present" id="present">
+  <div id="present-stage"></div>
+  <div class="present-hud">
+    <button class="pbtn" id="present-prev" title="Назад">‹</button>
+    <span id="present-counter">1 / 1</span>
+    <button class="pbtn" id="present-next" title="Вперёд">›</button>
+    <button class="pbtn" id="present-full" title="На весь экран — F"><span class="ico" data-i="full"></span></button>
+    <button class="pbtn" id="present-exit" title="Выход — Esc">✕</button>
+  </div>
+</div>
+
+<!-- Help -->
+<div class="overlay" id="help">
+  <div class="sheet">
+    <div class="sheet-head"><h2>Горячие клавиши</h2><button class="x-btn" id="help-close">✕</button></div>
+    <div class="sheet-body">
+      <div class="keys">
+        <h3>Слайды</h3>
+        <div class="kr"><span>Предыдущий / следующий</span><span><kbd>PgUp</kbd> <kbd>PgDn</kbd></span></div>
+        <div class="kr"><span>Листать (без выделения)</span><span><kbd>←</kbd> <kbd>→</kbd></span></div>
+        <div class="kr"><span>Новый слайд</span><kbd>N</kbd></div>
+        <div class="kr"><span>Режим показа</span><kbd>P</kbd></div>
+
+        <h3>Вставка</h3>
+        <div class="kr"><span>Заголовок</span><kbd>H</kbd></div>
+        <div class="kr"><span>Текст</span><kbd>T</kbd></div>
+        <div class="kr"><span>Формула (LaTeX)</span><kbd>F</kbd></div>
+        <div class="kr"><span>Изображение / GIF</span><kbd>I</kbd></div>
+
+        <h3>Элемент</h3>
+        <div class="kr"><span>Перемещать по сетке</span><span><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd></span></div>
+        <div class="kr"><span>След. / пред. элемент</span><span><kbd>Tab</kbd> <kbd>⇧Tab</kbd></span></div>
+        <div class="kr"><span>Редактировать текст</span><kbd>Enter</kbd></div>
+        <div class="kr"><span>Дублировать</span><kbd>⌘/Ctrl D</kbd></div>
+        <div class="kr"><span>Удалить</span><span><kbd>Del</kbd> <kbd>⌫</kbd></span></div>
+        <div class="kr"><span>Снять выделение</span><kbd>Esc</kbd></div>
+
+        <h3>Прочее</h3>
+        <div class="kr"><span>Отменить / вернуть</span><span><kbd>⌘/Ctrl Z</kbd> <kbd>⇧Z</kbd></span></div>
+        <div class="kr"><span>Показать сетку</span><kbd>G</kbd></div>
+        <div class="kr"><span>Сохранить проект</span><kbd>⌘/Ctrl S</kbd></div>
+        <div class="kr"><span>Эта справка</span><kbd>?</kbd></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<input type="file" id="file-image" accept="image/*" hidden>
+<input type="file" id="file-open" accept="application/json,.json" hidden>
+
+<script>
+"use strict";
+/* ============================================================
+   Slides — academic monochrome slide editor
+   Reference coordinate space: 1280 x 720 (16:9). Everything
+   (editor, thumbnails, present, export) renders this space and
+   only the scale changes.
+   ============================================================ */
+
+/* ---------- Geometry: 12-square magnetic grid ---------- */
+const REF_W = 1280, REF_H = 720, COLS = 12;
+const CELL = Math.floor(REF_W / COLS);            // 106
+const ROWS = Math.floor(REF_H / CELL);            // 6
+const GRID_W = CELL * COLS;                        // 1272
+const GRID_H = CELL * ROWS;                        // 636
+const OFF_X = Math.round((REF_W - GRID_W) / 2);    // leftover -> margin
+const OFF_Y = Math.round((REF_H - GRID_H) / 2);    // leftover -> margin
+
+const px = {
+  x: gx => OFF_X + gx * CELL,
+  y: gy => OFF_Y + gy * CELL,
+  w: gw => gw * CELL,
+  h: gh => gh * CELL,
+};
+
+/* ---------- Icons (inline, monochrome) ---------- */
+const ICONS = {
+  heading:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 3v10M11 3v10M3 8h8"/></svg>',
+  text:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 4h10M8 4v9M6 13h4"/></svg>',
+  math:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 3h4l3 10 3-10"/><path d="M2.5 13h4" stroke-width="1.4"/></svg>',
+  image:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="3.5" width="11" height="9" rx="1"/><circle cx="6" cy="7" r="1.1"/><path d="M3 11l3-2 3 2.5 2-1.5 2 2"/></svg>',
+  grid:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2.5" y="2.5" width="11" height="11" rx="1"/><path d="M6 2.5v11M10 2.5v11M2.5 6h11M2.5 10h11"/></svg>',
+  play:'<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5l7 4.5-7 4.5z"/></svg>',
+  download:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2v8M5 7.5l3 3 3-3M3 13h10"/></svg>',
+  chev:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>',
+  help:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M6.4 6.2a1.6 1.6 0 1 1 2.4 1.6c-.6.4-.8.7-.8 1.4M8 11.4v.1"/></svg>',
+  plus:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v10M3 8h10"/></svg>',
+  trash:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M5 4.5l.6 8.5h4.8L11 4.5"/></svg>',
+  copy:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5.5" y="5.5" width="8" height="8" rx="1"/><path d="M3.5 10.5V3.5h7"/></svg>',
+  front:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5" y="5" width="7" height="7" rx="1" fill="currentColor" stroke="none"/><rect x="3" y="3" width="6" height="6" rx="1"/></svg>',
+  back:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="7" y="7" width="6" height="6" rx="1" fill="currentColor" stroke="none"/></svg>',
+  alignL:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 4h10M3 8h6M3 12h8"/></svg>',
+  alignC:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 4h10M5 8h6M4 12h8"/></svg>',
+  alignR:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 4h10M7 8h6M5 12h8"/></svg>',
+  vTop:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 3.5h10"/><rect x="6" y="6" width="4" height="6" rx="1"/></svg>',
+  vMid:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 8h3M10 8h3"/><rect x="6" y="4.5" width="4" height="7" rx="1"/></svg>',
+  vBot:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 12.5h10"/><rect x="6" y="4" width="4" height="6" rx="1"/></svg>',
+  bold:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 3h4a2.5 2.5 0 0 1 0 5H5zM5 8h4.5a2.5 2.5 0 0 1 0 5H5z"/></svg>',
+  italic:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M7 3h5M4 13h5M9.5 3l-3 10"/></svg>',
+  html:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M6 5.5L3.5 8 6 10.5M10 5.5L12.5 8 10 10.5"/></svg>',
+  pptx:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="3" width="10" height="10" rx="1"/><path d="M6 10V6h2a1.4 1.4 0 0 1 0 2.8H6"/></svg>',
+  save:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3.5 3.5h7L13 6v6.5h-9.5z"/><rect x="6" y="3.5" width="4" height="3"/><rect x="5.5" y="9" width="5" height="3.5"/></svg>',
+  open:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2.5 5.5h4l1.2 1.5H13V12H2.5z"/><path d="M2.5 5.5V4h3l1 1.2"/></svg>',
+  full:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 6V3h3M13 6V3h-3M3 10v3h3M13 10v3h-3"/></svg>',
+};
+function paintIcons(root){
+  (root||document).querySelectorAll('[data-i]').forEach(s=>{ const n=s.dataset.i; if(ICONS[n]) s.innerHTML=ICONS[n]; });
+}
+
+/* ---------- Colors (monochrome scale) ---------- */
+const INK_COLORS = ['#1a1a1a','#5a5a5a','#9a9a9a','#ffffff'];
+
+/* ---------- State ---------- */
+let uid = 1; const nid = () => 'e'+(uid++);
+const TYPE_LABEL = {heading:'Заголовок', text:'Текст', math:'Формула', image:'Изображение'};
+
+function newSlide(){ return { id:'s'+(uid++), elements:[] }; }
+
+function defaultText(type){
+  if(type==='heading') return {text:'Заголовок слайда', fontSize:56, align:'left', valign:'top', bold:true, italic:false, color:INK_COLORS[0]};
+  return {text:'Основной текст. Дважды кликните, чтобы изменить.', fontSize:30, align:'left', valign:'top', bold:false, italic:false, color:INK_COLORS[0]};
+}
+
+const state = {
+  slides:[ seedSlide() ],
+  current:0,
+  selected:null,
+  showGrid:true,
+};
+function seedSlide(){
+  const s = newSlide();
+  s.elements.push(mk('heading',{gx:1,gy:1,gw:10,gh:1},defaultText('heading')));
+  s.elements.push(mk('math',{gx:1,gy:3,gw:6,gh:1},{latex:'e^{i\\pi}+1=0', fontSize:40, align:'left', color:INK_COLORS[0]}));
+  s.elements.push(mk('text',{gx:1,gy:4,gw:8,gh:1},Object.assign(defaultText('text'),{text:'Тождество Эйлера связывает пять фундаментальных констант.'})));
+  return s;
+}
+function mk(type, pos, props){ return Object.assign({id:nid(), type, gx:pos.gx, gy:pos.gy, gw:pos.gw, gh:pos.gh}, props); }
+
+/* ---------- History (undo / redo) ---------- */
+const history = {undo:[], redo:[]};
+function snapshot(){ return JSON.stringify({slides:state.slides, current:state.current}); }
+function pushHistory(){ history.undo.push(snapshot()); if(history.undo.length>80) history.undo.shift(); history.redo.length=0; }
+function applySnap(str){ const d=JSON.parse(str); state.slides=d.slides; state.current=Math.min(d.current, state.slides.length-1); state.selected=null; }
+function doUndo(){ if(!history.undo.length) return; history.redo.push(snapshot()); applySnap(history.undo.pop()); renderAll(); toast('Отменено'); }
+function doRedo(){ if(!history.redo.length) return; history.undo.push(snapshot()); applySnap(history.redo.pop()); renderAll(); toast('Возвращено'); }
+
+/* ---------- Helpers ---------- */
+const $ = (s,r)=> (r||document).querySelector(s);
+const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
+function curSlide(){ return state.slides[state.current]; }
+function findEl(id){ const s=curSlide(); return s.elements.find(e=>e.id===id); }
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------- KaTeX render cache ---------- */
+const mathCache = new Map();
+function renderMath(latex){
+  const key = latex||'';
+  if(mathCache.has(key)) return mathCache.get(key);
+  let html;
+  try{
+    if(typeof katex==='undefined') throw 0;
+    html = katex.renderToString(latex||'', {displayMode:true, throwOnError:false, output:'htmlAndMathml',
+      errorColor:'#b00', strict:'ignore'});
+  }catch(e){
+    html = '<span style="color:#b00;font-family:monospace">'+escapeHtml(latex||'')+'</span>';
+  }
+  mathCache.set(key, html);
+  return html;
+}
+function mathmlOnly(latex, color){
+  // For self-contained export: extract pure MathML (renders natively, no CSS/fonts needed)
+  try{
+    if(typeof katex==='undefined') throw 0;
+    const s = katex.renderToString(latex||'', {displayMode:true, throwOnError:false, output:'mathml', strict:'ignore'});
+    const t = document.createElement('div'); t.innerHTML = s;
+    const m = t.querySelector('math');
+    if(m){ m.setAttribute('display','block'); if(color && color!=='#1a1a1a') m.setAttribute('mathcolor',color); return m.outerHTML; }
+  }catch(e){}
+  return '<span style="font-family:monospace">'+escapeHtml(latex||'')+'</span>';
+}
+
+/* ============================================================
+   Element rendering (shared by editor / thumbnails / present)
+   ============================================================ */
+function styleText(el, node){
+  const c = node;
+  c.style.fontSize = el.fontSize+'px';
+  c.style.color = el.color;
+  c.style.fontFamily = 'var(--serif)';
+  c.style.fontWeight = el.bold ? '600':'400';
+  c.style.fontStyle = el.italic ? 'italic':'normal';
+  c.style.textAlign = el.align;
+  c.style.lineHeight = '1.18';
+  c.style.justifyContent = el.valign==='middle'?'center': el.valign==='bottom'?'flex-end':'flex-start';
+}
+
+function buildElement(el, mode){
+  // mode: 'edit' | 'view'
+  const d = document.createElement('div');
+  d.className = 'el '+el.type;
+  d.dataset.id = el.id;
+  d.style.left = px.x(el.gx)+'px';
+  d.style.top = px.y(el.gy)+'px';
+  d.style.width = px.w(el.gw)+'px';
+  d.style.height = px.h(el.gh)+'px';
+
+  if(el.type==='text' || el.type==='heading'){
+    const c = document.createElement('div'); c.className='el-content';
+    styleText(el, c);
+    const line = document.createElement('div'); line.className='line';
+    line.textContent = el.text||'';
+    c.appendChild(line);
+    d.appendChild(c);
+  } else if(el.type==='math'){
+    const c = document.createElement('div'); c.className='el-content';
+    c.style.justifyContent = el.align==='center'?'center': el.align==='right'?'flex-end':'flex-start';
+    const host = document.createElement('div'); host.className='katex-host';
+    host.style.fontSize = el.fontSize+'px';
+    host.style.color = el.color;
+    host.style.textAlign = el.align;
+    host.innerHTML = renderMath(el.latex);
+    c.appendChild(host); d.appendChild(c);
+  } else if(el.type==='image'){
+    const frame = document.createElement('div'); frame.className='img-frame';
+    const img = document.createElement('img');
+    img.src = el.src; img.alt = el.alt||'';
+    img.style.objectFit = el.fit||'contain';
+    frame.appendChild(img); d.appendChild(frame);
+  }
+
+  if(mode==='edit'){
+    d.classList.add('selectable');
+    if(state.selected===el.id){
+      d.classList.add('selected');
+      addHandles(d);
+    }
+  }
+  return d;
+}
+
+function addHandles(d){
+  ['nw','n','ne','e','se','s','sw','w'].forEach(dir=>{
+    const h = document.createElement('div'); h.className='handle h-'+dir; h.dataset.dir=dir;
+    d.appendChild(h);
+  });
+}
+
+/* ============================================================
+   Editor stage
+   ============================================================ */
+const stage = $('#stage');
+const stageCol = $('#stage-col');
+const gridOverlay = $('#grid-overlay');
+
+function fitStage(){
+  const pad = 52;
+  const aw = stageCol.clientWidth - pad, ah = stageCol.clientHeight - pad;
+  const scale = Math.max(.1, Math.min(aw/REF_W, ah/REF_H));
+  stage.style.transform = 'scale('+scale+')';
+  const f = stage.parentElement; // stage-frame
+  f.style.width = (REF_W*scale)+'px';
+  f.style.height = (REF_H*scale)+'px';
+  stage.style.position='absolute'; stage.style.left='0'; stage.style.top='0';
+  stage.style.transformOrigin='top left';
+  // overlay matches scaled stage
+  gridOverlay.style.left = px.x(0)*scale+'px';
+  gridOverlay.style.top = px.y(0)*scale+'px';
+  gridOverlay.style.width = GRID_W*scale+'px';
+  gridOverlay.style.height = GRID_H*scale+'px';
+  gridOverlay._scale = scale;
+  return scale;
+}
+
+function renderStage(){
+  const scale = fitStage();
+  stage.querySelectorAll('.el').forEach(n=>n.remove());
+  const s = curSlide();
+  s.elements.forEach(el=>{
+    const node = buildElement(el,'edit');
+    stage.appendChild(node);
+  });
+  gridOverlay.classList.toggle('show', state.showGrid);
+  bindStageEvents();
+}
+
+/* pointer -> reference coords */
+function evtRef(e){
+  const r = stage.getBoundingClientRect();
+  const scale = r.width / REF_W;
+  return { x:(e.clientX - r.left)/scale, y:(e.clientY - r.top)/scale, scale };
+}
+function refToCol(x){ return Math.round((x - OFF_X)/CELL); }
+function refToRow(y){ return Math.round((y - OFF_Y)/CELL); }
+
+let drag = null;
+function bindStageEvents(){
+  // (re)bind via delegation once
+}
+stage.addEventListener('pointerdown', e=>{
+  const handle = e.target.closest('.handle');
+  const elNode = e.target.closest('.el');
+  if(handle && elNode){
+    startResize(e, elNode, handle.dataset.dir); return;
+  }
+  if(elNode){
+    const id = elNode.dataset.id;
+    if(state.selected!==id){ state.selected=id; renderStage(); renderInspector(); }
+    // don't start drag if currently editing this text
+    if(elNode.classList.contains('editing-text')) return;
+    startMove(e, id);
+  } else {
+    if(state.selected){ state.selected=null; renderStage(); renderInspector(); }
+  }
+});
+stage.addEventListener('dblclick', e=>{
+  const elNode = e.target.closest('.el'); if(!elNode) return;
+  const el = findEl(elNode.dataset.id); if(!el) return;
+  if(el.type==='text'||el.type==='heading'){ beginTextEdit(elNode, el); }
+  else if(el.type==='math'){ const t=$('#tex-input'); if(t){ t.focus(); t.select(); } }
+});
+
+function startMove(e, id){
+  const el = findEl(id); if(!el) return;
+  const p = evtRef(e);
+  const grabX = p.x - px.x(el.gx);
+  const grabY = p.y - px.y(el.gy);
+  drag = {mode:'move', id, grabX, grabY, moved:false, start:{gx:el.gx,gy:el.gy}};
+  stage.setPointerCapture(e.pointerId);
+  gridOverlay.classList.add('dragging','show');
+  window.addEventListener('pointermove', onDragMove);
+  window.addEventListener('pointerup', onDragUp, {once:true});
+}
+function startResize(e, elNode, dir){
+  const el = findEl(elNode.dataset.id); if(!el) return;
+  drag = {mode:'resize', id:el.id, dir, start:{gx:el.gx,gy:el.gy,gw:el.gw,gh:el.gh}, moved:false};
+  stage.setPointerCapture(e.pointerId);
+  gridOverlay.classList.add('dragging','show');
+  window.addEventListener('pointermove', onDragMove);
+  window.addEventListener('pointerup', onDragUp, {once:true});
+  e.stopPropagation();
+}
+function onDragMove(e){
+  if(!drag) return;
+  const el = findEl(drag.id); if(!el) return;
+  const p = evtRef(e);
+  if(!drag.moved){ drag.moved=true; pushHistory(); }
+  if(drag.mode==='move'){
+    let gx = refToCol(p.x - drag.grabX + 1);
+    let gy = refToRow(p.y - drag.grabY + 1);
+    gx = clamp(gx, 0, COLS - el.gw);
+    gy = clamp(gy, 0, ROWS - el.gh);
+    el.gx = gx; el.gy = gy;
+  } else {
+    const col = clamp(refToCol(p.x), 0, COLS);
+    const row = clamp(refToRow(p.y), 0, ROWS);
+    const s = drag.start; const d = drag.dir;
+    let x0=s.gx, y0=s.gy, x1=s.gx+s.gw, y1=s.gy+s.gh;
+    if(d.includes('e')) x1 = Math.max(x0+1, col);
+    if(d.includes('w')) x0 = Math.min(x1-1, col);
+    if(d.includes('s')) y1 = Math.max(y0+1, row);
+    if(d.includes('n')) y0 = Math.min(y1-1, row);
+    el.gx=x0; el.gy=y0; el.gw=x1-x0; el.gh=y1-y0;
+  }
+  liveUpdateEl(el);
+}
+function onDragUp(e){
+  gridOverlay.classList.remove('dragging');
+  if(!state.showGrid) gridOverlay.classList.remove('show');
+  window.removeEventListener('pointermove', onDragMove);
+  const changed = drag && drag.moved;
+  drag = null;
+  if(changed){ renderInspector(); scheduleThumb(); }
+}
+function liveUpdateEl(el){
+  const node = stage.querySelector('.el[data-id="'+el.id+'"]');
+  if(!node) return;
+  node.style.left = px.x(el.gx)+'px';
+  node.style.top = px.y(el.gy)+'px';
+  node.style.width = px.w(el.gw)+'px';
+  node.style.height = px.h(el.gh)+'px';
+  syncInspectorPos(el);
+}
+
+/* ---------- inline text editing ---------- */
+let editing = null;
+function beginTextEdit(elNode, el){
+  const line = elNode.querySelector('.line');
+  elNode.classList.add('editing-text');
+  line.setAttribute('contenteditable','true');
+  line.style.cursor='text';
+  editing = {id:el.id, before:el.text};
+  pushHistory();
+  line.focus();
+  // place caret at end
+  const range=document.createRange(); range.selectNodeContents(line); range.collapse(false);
+  const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+  line.addEventListener('input', onTextInput);
+  line.addEventListener('blur', endTextEdit, {once:true});
+}
+function onTextInput(e){
+  const el = findEl(editing.id); if(!el) return;
+  el.text = e.target.innerText;
+  scheduleThumb();
+}
+function endTextEdit(e){
+  const line = e.target;
+  line.removeAttribute('contenteditable');
+  line.removeEventListener('input', onTextInput);
+  const node = line.closest('.el'); if(node) node.classList.remove('editing-text');
+  editing = null;
+  renderInspector();
+}
+
+/* ============================================================
+   Inspector
+   ============================================================ */
+const inspector = $('#inspector');
+function renderInspector(){
+  const el = state.selected ? findEl(state.selected) : null;
+  if(!el){
+    inspector.innerHTML =
+      '<div class="insp-empty"><span class="ico" data-i="text"></span>'+
+      'Выберите элемент, чтобы изменить его,<br>или вставьте новый: '+
+      '<kbd>H</kbd> <kbd>T</kbd> <kbd>F</kbd> <kbd>I</kbd></div>';
+    paintIcons(inspector);
+    return;
+  }
+  let html = '';
+  html += '<div class="group"><div class="group-title">Элемент<span class="badge">'+TYPE_LABEL[el.type]+'</span></div>';
+  html += '<div class="row"><div class="seg grow">'+
+    '<button data-act="front" title="На передний план"><span class="ico" data-i="front"></span></button>'+
+    '<button data-act="back" title="На задний план"><span class="ico" data-i="back"></span></button>'+
+    '<button data-act="dup" title="Дублировать"><span class="ico" data-i="copy"></span></button>'+
+    '<button data-act="del" class="del-btn" title="Удалить"><span class="ico" data-i="trash"></span></button>'+
+    '</div></div></div>';
+
+  if(el.type==='text' || el.type==='heading'){
+    html += '<div class="group"><div class="group-title">Текст</div>';
+    html += sizeRow('Кегль', el.fontSize, 6, 160);
+    html += '<div class="row"><div class="lbl">Гориз.</div>'+segAlign(el.align)+'</div>';
+    html += '<div class="row"><div class="lbl">Верт.</div>'+segValign(el.valign)+'</div>';
+    html += '<div class="row"><div class="lbl">Стиль</div><div class="seg">'+
+      '<button data-style="bold" class="'+(el.bold?'on':'')+'"><span class="ico" data-i="bold"></span></button>'+
+      '<button data-style="italic" class="'+(el.italic?'on':'')+'"><span class="ico" data-i="italic"></span></button>'+
+      '</div></div>';
+    html += '<div class="row"><div class="lbl">Цвет</div>'+swatches(el.color)+'</div>';
+    html += '</div>';
+  } else if(el.type==='math'){
+    html += '<div class="group"><div class="group-title">LaTeX</div>';
+    html += '<textarea class="tex" id="tex-input" spellcheck="false">'+escapeHtml(el.latex||'')+'</textarea>';
+    html += '<div class="tex-hint">Например: <code>\\frac{a}{b}</code>, <code>\\int_0^1 x\\,dx</code>, <code>\\sum_{i=1}^{n}</code></div>';
+    html += sizeRow('Размер', el.fontSize, 10, 160);
+    html += '<div class="row"><div class="lbl">Выравн.</div>'+segAlign(el.align)+'</div>';
+    html += '<div class="row"><div class="lbl">Цвет</div>'+swatches(el.color)+'</div>';
+    html += '</div>';
+  } else if(el.type==='image'){
+    html += '<div class="group"><div class="group-title">Изображение</div>';
+    html += '<button class="full-btn" data-act="replace"><span class="ico" data-i="image"></span>Заменить файл</button>';
+    html += '<div class="row" style="margin-top:9px"><div class="lbl">Кадр</div><div class="seg grow">'+
+      '<button data-fit="contain" class="'+((el.fit||'contain')==='contain'?'on':'')+'">Целиком</button>'+
+      '<button data-fit="cover" class="'+(el.fit==='cover'?'on':'')+'">Заполнить</button>'+
+      '</div></div>';
+    html += '<div class="tex-hint">Рамка с тенью применяется автоматически ко всем изображениям и GIF.</div>';
+    html += '</div>';
+  }
+
+  // Position group
+  html += '<div class="group"><div class="group-title">Положение · сетка</div><div class="pos-grid">'+
+    posCell('X','gx',el.gx)+posCell('Y','gy',el.gy)+posCell('Ш','gw',el.gw)+posCell('В','gh',el.gh)+
+    '</div></div>';
+
+  inspector.innerHTML = html;
+  paintIcons(inspector);
+  bindInspector(el);
+}
+
+function sizeRow(label,val,min,max){
+  return '<div class="row"><div class="lbl">'+label+'</div>'+
+    '<div class="stepper"><button data-step="fontSize:-2">−</button>'+
+    '<input type="number" data-num="fontSize" value="'+val+'" min="'+min+'" max="'+max+'">'+
+    '<button data-step="fontSize:2">+</button></div></div>';
+}
+function segAlign(a){
+  return '<div class="seg">'+
+    '<button data-align="left" class="'+(a==='left'?'on':'')+'"><span class="ico" data-i="alignL"></span></button>'+
+    '<button data-align="center" class="'+(a==='center'?'on':'')+'"><span class="ico" data-i="alignC"></span></button>'+
+    '<button data-align="right" class="'+(a==='right'?'on':'')+'"><span class="ico" data-i="alignR"></span></button>'+
+    '</div>';
+}
+function segValign(v){
+  return '<div class="seg">'+
+    '<button data-valign="top" class="'+((v||'top')==='top'?'on':'')+'"><span class="ico" data-i="vTop"></span></button>'+
+    '<button data-valign="middle" class="'+(v==='middle'?'on':'')+'"><span class="ico" data-i="vMid"></span></button>'+
+    '<button data-valign="bottom" class="'+(v==='bottom'?'on':'')+'"><span class="ico" data-i="vBot"></span></button>'+
+    '</div>';
+}
+function swatches(color){
+  return '<div class="swatches">'+INK_COLORS.map(c=>
+    '<button class="sw '+(c===color?'on':'')+'" data-color="'+c+'" style="background:'+c+';'+(c==='#ffffff'?'border-color:#ccc':'')+'"></button>'
+  ).join('')+'</div>';
+}
+function posCell(label,key,val){
+  return '<div class="cell"><div class="lbl">'+label+'</div>'+
+    '<div class="stepper"><input type="number" data-pos="'+key+'" value="'+val+'"></div></div>';
+}
+
+function bindInspector(el){
+  // actions
+  $$('[data-act]',inspector).forEach(b=> b.addEventListener('click',()=>{
+    const a=b.dataset.act;
+    if(a==='del'){ deleteSelected(); }
+    else if(a==='dup'){ duplicateSelected(); }
+    else if(a==='front'){ pushHistory(); zorder(1); }
+    else if(a==='back'){ pushHistory(); zorder(-1); }
+    else if(a==='replace'){ replaceImageFor=el.id; $('#file-image').click(); }
+  }));
+  $('.del-btn',inspector)?.classList.add('danger');
+  // step buttons
+  $$('[data-step]',inspector).forEach(b=> b.addEventListener('click',()=>{
+    const [k,delta]=b.dataset.step.split(':'); pushHistory();
+    el[k]=clamp((el[k]||0)+Number(delta), 6, 200); refreshEl(el); renderInspector();
+  }));
+  // number inputs
+  $$('[data-num]',inspector).forEach(inp=>{
+    inp.addEventListener('change',()=>{ pushHistory(); el[inp.dataset.num]=clamp(Number(inp.value)||el[inp.dataset.num],6,200); refreshEl(el); });
+  });
+  // align / valign / style / color / fit
+  $$('[data-align]',inspector).forEach(b=> b.addEventListener('click',()=>{ pushHistory(); el.align=b.dataset.align; refreshEl(el); renderInspector(); }));
+  $$('[data-valign]',inspector).forEach(b=> b.addEventListener('click',()=>{ pushHistory(); el.valign=b.dataset.valign; refreshEl(el); renderInspector(); }));
+  $$('[data-style]',inspector).forEach(b=> b.addEventListener('click',()=>{ pushHistory(); el[b.dataset.style]=!el[b.dataset.style]; refreshEl(el); renderInspector(); }));
+  $$('[data-color]',inspector).forEach(b=> b.addEventListener('click',()=>{ pushHistory(); el.color=b.dataset.color; refreshEl(el); renderInspector(); }));
+  $$('[data-fit]',inspector).forEach(b=> b.addEventListener('click',()=>{ pushHistory(); el.fit=b.dataset.fit; refreshEl(el); renderInspector(); }));
+  // position
+  $$('[data-pos]',inspector).forEach(inp=>{
+    inp.addEventListener('change',()=>{
+      pushHistory();
+      let v=Math.round(Number(inp.value));
+      const k=inp.dataset.pos;
+      if(k==='gw') el.gw=clamp(v,1,COLS-el.gx);
+      else if(k==='gh') el.gh=clamp(v,1,ROWS-el.gy);
+      else if(k==='gx') el.gx=clamp(v,0,COLS-el.gw);
+      else if(k==='gy') el.gy=clamp(v,0,ROWS-el.gh);
+      refreshEl(el); renderInspector();
+    });
+  });
+  // tex live
+  const tex=$('#tex-input',inspector);
+  if(tex){
+    let t0=el.latex;
+    tex.addEventListener('input',()=>{ el.latex=tex.value; refreshEl(el,true); scheduleThumb(); });
+    tex.addEventListener('focus',()=>{ t0=el.latex; pushHistory(); });
+  }
+}
+function syncInspectorPos(el){
+  $$('[data-pos]',inspector).forEach(inp=>{ inp.value = el[inp.dataset.pos]; });
+}
+function refreshEl(el, mathChanged){
+  if(mathChanged) mathCache.delete(el.latex);
+  const node = stage.querySelector('.el[data-id="'+el.id+'"]');
+  if(node){
+    const fresh = buildElement(el,'edit');
+    node.replaceWith(fresh);
+  }
+  scheduleThumb();
+}
+
+/* ---------- z-order ---------- */
+function zorder(dir){
+  const s=curSlide(); const i=s.elements.findIndex(e=>e.id===state.selected); if(i<0) return;
+  if(dir>0){ s.elements.push(s.elements.splice(i,1)[0]); }
+  else { s.elements.unshift(s.elements.splice(i,1)[0]); }
+  renderStage();
+}
+
+/* ============================================================
+   Element creation
+   ============================================================ */
+let replaceImageFor = null;
+function centeredPos(gw,gh){
+  return { gx:clamp(Math.round((COLS-gw)/2),0,COLS-gw), gy:clamp(Math.round((ROWS-gh)/2),0,ROWS-gh), gw, gh };
+}
+function addElement(type){
+  if(type==='image'){ replaceImageFor=null; $('#file-image').click(); return; }
+  pushHistory();
+  let el;
+  if(type==='heading') el = mk('heading', {gx:1,gy:1,gw:10,gh:1}, defaultText('heading'));
+  else if(type==='text') el = mk('text', centeredPos(7,2), defaultText('text'));
+  else if(type==='math') el = mk('math', centeredPos(5,1), {latex:'\\frac{\\partial f}{\\partial x}', fontSize:42, align:'center', color:INK_COLORS[0]});
+  curSlide().elements.push(el);
+  state.selected = el.id;
+  renderStage(); renderInspector(); scheduleThumb();
+}
+
+$('#file-image').addEventListener('change', e=>{
+  const file = e.target.files[0]; e.target.value='';
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const dataURL = reader.result;
+    const img = new Image();
+    img.onload = ()=>{
+      const ar = img.naturalWidth / img.naturalHeight || 1.5;
+      if(replaceImageFor){
+        const el=findEl(replaceImageFor); replaceImageFor=null;
+        if(el){ pushHistory(); el.src=dataURL; refreshEl(el); }
+        return;
+      }
+      // size frame to image aspect within grid
+      let gw = clamp(Math.round(ar>=1?5:3),1,COLS);
+      let gh = clamp(Math.round(gw/ar),1,ROWS);
+      if(gh<1) gh=1;
+      pushHistory();
+      const pos = centeredPos(gw,gh);
+      const el = mk('image', pos, {src:dataURL, fit:'contain', alt:file.name});
+      curSlide().elements.push(el);
+      state.selected=el.id;
+      renderStage(); renderInspector(); scheduleThumb();
+    };
+    img.src = dataURL;
+  };
+  reader.readAsDataURL(file);
+});
+
+function deleteSelected(){
+  const s=curSlide(); const i=s.elements.findIndex(e=>e.id===state.selected); if(i<0) return;
+  pushHistory(); s.elements.splice(i,1); state.selected=null;
+  renderStage(); renderInspector(); scheduleThumb();
+}
+function duplicateSelected(){
+  const el=findEl(state.selected); if(!el) return;
+  pushHistory();
+  const copy = JSON.parse(JSON.stringify(el)); copy.id=nid();
+  copy.gx=clamp(el.gx+1,0,COLS-el.gw); copy.gy=clamp(el.gy+1,0,ROWS-el.gh);
+  curSlide().elements.push(copy); state.selected=copy.id;
+  renderStage(); renderInspector(); scheduleThumb();
+}
+function moveSelected(dx,dy){
+  const el=findEl(state.selected); if(!el) return;
+  pushHistory();
+  el.gx=clamp(el.gx+dx,0,COLS-el.gw);
+  el.gy=clamp(el.gy+dy,0,ROWS-el.gh);
+  liveUpdateEl(el);
+}
+function selectNext(dir){
+  const s=curSlide(); if(!s.elements.length) return;
+  let i=s.elements.findIndex(e=>e.id===state.selected);
+  i = i<0 ? (dir>0?0:s.elements.length-1) : (i+dir+s.elements.length)%s.elements.length;
+  state.selected=s.elements[i].id;
+  renderStage(); renderInspector();
+}
+
+/* ============================================================
+   Slides rail + thumbnails
+   ============================================================ */
+const railList = $('#rail-list');
+function renderRail(){
+  railList.innerHTML='';
+  state.slides.forEach((s,i)=>{
+    const wrap=document.createElement('div'); wrap.className='thumb-wrap';
+    const no=document.createElement('div'); no.className='thumb-no'; no.textContent=i+1;
+    const t=document.createElement('div'); t.className='thumb'+(i===state.current?' active':'');
+    const mini=document.createElement('div'); mini.className='mini';
+    s.elements.forEach(el=> mini.appendChild(buildElement(el,'view')));
+    t.appendChild(mini);
+    const del=document.createElement('button'); del.className='del'; del.innerHTML=ICONS.trash;
+    del.title='Удалить слайд';
+    del.addEventListener('click',ev=>{ ev.stopPropagation(); deleteSlide(i); });
+    t.appendChild(del);
+    t.addEventListener('click',()=> gotoSlide(i));
+    // scale mini to thumb
+    requestAnimationFrame(()=>{ const sc=t.clientWidth/REF_W; mini.style.transform='scale('+sc+')'; });
+    wrap.appendChild(no); wrap.appendChild(t);
+    railList.appendChild(wrap);
+  });
+  $('#slide-count').textContent = state.slides.length;
+}
+let thumbTimer=null;
+function scheduleThumb(){ clearTimeout(thumbTimer); thumbTimer=setTimeout(renderRail, 220); }
+
+function addSlide(){
+  pushHistory();
+  state.slides.splice(state.current+1,0,newSlide());
+  state.current++; state.selected=null;
+  renderAll();
+}
+function deleteSlide(i){
+  if(state.slides.length<=1){ toast('Нельзя удалить единственный слайд'); return; }
+  pushHistory();
+  state.slides.splice(i,1);
+  if(state.current>=state.slides.length) state.current=state.slides.length-1;
+  state.selected=null; renderAll();
+}
+function gotoSlide(i){
+  i=clamp(i,0,state.slides.length-1);
+  if(i===state.current) return;
+  state.current=i; state.selected=null;
+  renderStage(); renderInspector(); renderRail();
+}
+
+/* ============================================================
+   Render all
+   ============================================================ */
+function renderAll(){ renderStage(); renderInspector(); renderRail(); }
+
+/* ============================================================
+   Present mode
+   ============================================================ */
+const present = $('#present');
+const presentStage = $('#present-stage');
+let presentIdx = 0;
+function fitPresent(){
+  const scale = Math.min(window.innerWidth/REF_W, window.innerHeight/REF_H);
+  presentStage.style.transform='scale('+scale+')';
+}
+function renderPresent(){
+  presentStage.querySelectorAll('.el').forEach(n=>n.remove());
+  const s=state.slides[presentIdx];
+  s.elements.forEach(el=> presentStage.appendChild(buildElement(el,'view')));
+  $('#present-counter').textContent=(presentIdx+1)+' / '+state.slides.length;
+  fitPresent();
+}
+function openPresent(){
+  presentIdx=state.current; present.classList.add('show'); renderPresent();
+}
+function closePresent(){
+  present.classList.remove('show');
+  if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+  state.current=presentIdx; renderAll();
+}
+function presentNav(d){ presentIdx=clamp(presentIdx+d,0,state.slides.length-1); renderPresent(); }
+$('#present-prev').onclick=()=>presentNav(-1);
+$('#present-next').onclick=()=>presentNav(1);
+$('#present-exit').onclick=closePresent;
+$('#present-full').onclick=()=>{ if(!document.fullscreenElement) present.requestFullscreen().catch(()=>{}); else document.exitFullscreen(); };
+presentStage.addEventListener('click', ()=>presentNav(1));
+window.addEventListener('resize', ()=>{ if(present.classList.contains('show')) fitPresent(); else fitStage(); });
+
+/* ============================================================
+   Keyboard
+   ============================================================ */
+function isTyping(){
+  const a=document.activeElement;
+  if(!a) return false;
+  return a.tagName==='INPUT' || a.tagName==='TEXTAREA' || a.isContentEditable;
+}
+document.addEventListener('keydown', e=>{
+  // Present mode
+  if(present.classList.contains('show')){
+    if(e.key==='Escape') closePresent();
+    else if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'||e.key==='Enter'){ e.preventDefault(); presentNav(1); }
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); presentNav(-1); }
+    else if(e.key==='f'||e.key==='F'){ $('#present-full').click(); }
+    return;
+  }
+  // Help overlay
+  if($('#help').classList.contains('show')){ if(e.key==='Escape'||e.key==='?') $('#help').classList.remove('show'); return; }
+
+  const meta = e.metaKey||e.ctrlKey;
+
+  // Undo / redo (work everywhere except while typing text content where native applies)
+  if(meta && (e.key==='z'||e.key==='Z')){ if(!isTyping()){ e.preventDefault(); e.shiftKey?doRedo():doUndo(); } return; }
+  if(meta && (e.key==='y'||e.key==='Y')){ if(!isTyping()){ e.preventDefault(); doRedo(); } return; }
+  if(meta && (e.key==='s'||e.key==='S')){ e.preventDefault(); exportJSON(); return; }
+
+  if(isTyping()){
+    if(e.key==='Escape'){ document.activeElement.blur(); }
+    return;
+  }
+
+  switch(e.key){
+    case 'ArrowLeft': if(state.selected){ e.preventDefault(); moveSelected(-1,0);} else { e.preventDefault(); gotoSlide(state.current-1);} break;
+    case 'ArrowRight': if(state.selected){ e.preventDefault(); moveSelected(1,0);} else { e.preventDefault(); gotoSlide(state.current+1);} break;
+    case 'ArrowUp': if(state.selected){ e.preventDefault(); moveSelected(0,-1);} break;
+    case 'ArrowDown': if(state.selected){ e.preventDefault(); moveSelected(0,1);} break;
+    case 'PageUp': e.preventDefault(); gotoSlide(state.current-1); break;
+    case 'PageDown': e.preventDefault(); gotoSlide(state.current+1); break;
+    case 'Tab': e.preventDefault(); selectNext(e.shiftKey?-1:1); break;
+    case 'Enter': if(state.selected){ const el=findEl(state.selected); if(el&&(el.type==='text'||el.type==='heading')){ e.preventDefault(); const node=stage.querySelector('.el[data-id="'+el.id+'"]'); if(node) beginTextEdit(node,el);} } break;
+    case 'Delete': case 'Backspace': if(state.selected){ e.preventDefault(); deleteSelected(); } break;
+    case 'Escape': if(state.selected){ state.selected=null; renderStage(); renderInspector(); } break;
+    case 'd': case 'D': if(meta){ e.preventDefault(); duplicateSelected(); } break;
+    case 't': case 'T': if(!meta){ addElement('text'); } break;
+    case 'h': case 'H': if(!meta){ addElement('heading'); } break;
+    case 'f': case 'F': if(!meta){ addElement('math'); } break;
+    case 'i': case 'I': if(!meta){ addElement('image'); } break;
+    case 'n': case 'N': if(!meta){ addSlide(); } break;
+    case 'p': case 'P': if(!meta){ openPresent(); } break;
+    case 'g': case 'G': if(!meta){ toggleGrid(); } break;
+    case '?': $('#help').classList.add('show'); break;
+  }
+});
+
+function toggleGrid(){ state.showGrid=!state.showGrid; gridOverlay.classList.toggle('show',state.showGrid); $('#btn-grid').classList.toggle('on',state.showGrid); }
+
+/* ============================================================
+   Toolbar wiring
+   ============================================================ */
+$$('[data-add]').forEach(b=> b.addEventListener('click',()=> addElement(b.dataset.add)));
+$('#rail-add').addEventListener('click', addSlide);
+$('#btn-present').addEventListener('click', openPresent);
+$('#btn-grid').addEventListener('click', toggleGrid);
+$('#btn-help').addEventListener('click', ()=> $('#help').classList.add('show'));
+$('#help-close').addEventListener('click', ()=> $('#help').classList.remove('show'));
+$('#help').addEventListener('click', e=>{ if(e.target.id==='help') $('#help').classList.remove('show'); });
+
+// export menu
+const expMenu=$('#export-menu');
+$('#btn-export').addEventListener('click', e=>{ e.stopPropagation(); expMenu.classList.toggle('open'); });
+document.addEventListener('click', ()=> expMenu.classList.remove('open'));
+$$('[data-exp]',expMenu).forEach(b=> b.addEventListener('click',()=>{
+  expMenu.classList.remove('open');
+  const a=b.dataset.exp;
+  if(a==='html') exportHTML();
+  else if(a==='pptx') exportPPTX();
+  else if(a==='save') exportJSON();
+  else if(a==='open') $('#file-open').click();
+}));
+$('#file-open').addEventListener('change', e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d&&d.slides){ pushHistory(); state.slides=d.slides; state.current=0; state.selected=null; mathCache.clear(); renderAll(); toast('Проект загружен'); } else toast('Неверный файл'); }catch(err){ toast('Не удалось открыть файл'); } };
+  r.readAsText(f);
+});
+
+/* ---------- toast ---------- */
+let toastTimer=null;
+function toast(msg, busy){
+  const t=$('#toast'); t.textContent=msg; t.classList.toggle('busy',!!busy); t.classList.add('show');
+  clearTimeout(toastTimer); if(!busy) toastTimer=setTimeout(()=>t.classList.remove('show'),1800);
+}
+function hideToast(){ $('#toast').classList.remove('show','busy'); }
+
+/* ---------- download helper ---------- */
+function download(filename, content, mime){
+  const blob = content instanceof Blob ? content : new Blob([content], {type:mime||'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click();
+  a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+/* ============================================================
+   Export: project JSON
+   ============================================================ */
+function exportJSON(){
+  const data = JSON.stringify({version:1, slides:state.slides}, null, 0);
+  download('presentation.slides.json', data, 'application/json');
+  toast('Проект сохранён');
+}
+
+/* ============================================================
+   Export: self-contained HTML
+   (images are already base64; formulas -> native MathML; nav + scaling inlined)
+   ============================================================ */
+function elToExportHTML(el){
+  const style = 'position:absolute;left:'+px.x(el.gx)+'px;top:'+px.y(el.gy)+'px;width:'+px.w(el.gw)+'px;height:'+px.h(el.gh)+'px;overflow:'+(el.type==='image'?'visible':'hidden')+';';
+  if(el.type==='text'||el.type==='heading'){
+    const jc = el.valign==='middle'?'center':el.valign==='bottom'?'flex-end':'flex-start';
+    const inner='font-size:'+el.fontSize+'px;color:'+el.color+';font-weight:'+(el.bold?600:400)+';font-style:'+(el.italic?'italic':'normal')+';text-align:'+el.align+';line-height:1.18;white-space:pre-wrap;width:100%;';
+    return '<div class="el" style="'+style+'"><div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:'+jc+'"><div style="'+inner+'">'+escapeHtml(el.text||'')+'</div></div></div>';
+  }
+  if(el.type==='math'){
+    const jc = el.align==='center'?'center':el.align==='right'?'flex-end':'flex-start';
+    return '<div class="el" style="'+style+'"><div style="width:100%;height:100%;display:flex;align-items:center;justify-content:'+jc+'"><div style="font-size:'+el.fontSize+'px;color:'+el.color+';overflow:hidden">'+mathmlOnly(el.latex, el.color)+'</div></div></div>';
+  }
+  if(el.type==='image'){
+    return '<div class="el" style="'+style+'"><div class="imgframe"><img src="'+el.src+'" style="object-fit:'+(el.fit||'contain')+'" alt="'+escapeHtml(el.alt||'')+'"></div></div>';
+  }
+  return '';
+}
+
+function buildExportHTML(){
+  const slidesHTML = state.slides.map((s,i)=>
+    '<section class="slide" data-i="'+i+'">'+ s.elements.map(elToExportHTML).join('') +'</section>'
+  ).join('\n');
+
+  const css =
+'*{box-sizing:border-box;margin:0;padding:0}'+
+'html,body{height:100%}'+
+'body{background:#0e0e0e;font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Palatino,Georgia,"Times New Roman",serif;overflow:hidden;display:flex;align-items:center;justify-content:center}'+
+'#deck{position:relative;width:'+REF_W+'px;height:'+REF_H+'px}'+
+'.slide{position:absolute;left:0;top:0;width:'+REF_W+'px;height:'+REF_H+'px;background:#fff;transform-origin:top left;opacity:0;pointer-events:none;transition:opacity .25s ease}'+
+'.slide.active{opacity:1;pointer-events:auto}'+
+'.el math{font-size:1em}'+
+'.imgframe{width:100%;height:100%;background:#fff;padding:12px;border:1px solid #e7e7e4;box-shadow:0 10px 30px rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.10)}'+
+'.imgframe img{display:block;width:100%;height:100%}'+
+'#hud{position:fixed;bottom:16px;right:20px;color:rgba(255,255,255,.5);font-family:system-ui,sans-serif;font-size:12px;letter-spacing:.04em;font-variant-numeric:tabular-nums;display:flex;gap:14px;align-items:center}'+
+'#hud button{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);width:28px;height:28px;border-radius:5px;cursor:pointer;font-size:15px}'+
+'#hud button:hover{background:rgba(255,255,255,.18)}'+
+'@media print{body{background:#fff}.slide{position:relative;opacity:1;page-break-after:always;transform:none!important}#deck{width:auto;height:auto}#hud{display:none}}';
+
+  const js =
+'(function(){'+
+'var deck=document.getElementById("deck"),slides=Array.prototype.slice.call(document.querySelectorAll(".slide"));'+
+'var i=0;'+
+'function fit(){var s=Math.min(innerWidth/'+REF_W+',innerHeight/'+REF_H+');deck.style.transform="scale("+s+")";deck.style.position="absolute";deck.style.left=(innerWidth-'+REF_W+'*s)/2+"px";deck.style.top=(innerHeight-'+REF_H+'*s)/2+"px";}'+
+'function show(n){i=Math.max(0,Math.min(slides.length-1,n));slides.forEach(function(s,k){s.classList.toggle("active",k===i);});var c=document.getElementById("ctr");if(c)c.textContent=(i+1)+" / "+slides.length;}'+
+'function nav(d){show(i+d);}'+
+'addEventListener("resize",fit);'+
+'addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"||e.key==="Enter"){e.preventDefault();nav(1);}else if(e.key==="ArrowLeft"||e.key==="PageUp"){e.preventDefault();nav(-1);}else if(e.key==="Home"){show(0);}else if(e.key==="End"){show(slides.length-1);}else if(e.key==="f"||e.key==="F"){toggleFull();}});'+
+'deck.addEventListener("click",function(){nav(1);});'+
+'function toggleFull(){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}'+
+'document.getElementById("prev").onclick=function(e){e.stopPropagation();nav(-1);};'+
+'document.getElementById("next").onclick=function(e){e.stopPropagation();nav(1);};'+
+'document.getElementById("full").onclick=function(e){e.stopPropagation();toggleFull();};'+
+'fit();show(0);'+
+'})();';
+
+  return '<!doctype html>\n<html lang="ru"><head><meta charset="utf-8">'+
+    '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+    '<title>Презентация</title><style>'+css+'</style></head><body>'+
+    '<div id="deck">'+slidesHTML+'</div>'+
+    '<div id="hud"><button id="prev" title="Назад">‹</button><span id="ctr">1 / '+state.slides.length+'</span><button id="next" title="Вперёд">›</button><button id="full" title="Полный экран (F)">⛶</button></div>'+
+    '<script>'+js+'<\/script></body></html>';
+}
+function exportHTML(){
+  try{
+    const html = buildExportHTML();
+    download('presentation.html', html, 'text/html');
+    toast('HTML экспортирован · все медиа внутри');
+  }catch(err){ console.error(err); toast('Ошибка экспорта HTML'); }
+}
+
+/* ============================================================
+   Export: PPTX (optional) — PptxGenJS + html2canvas loaded lazily
+   ============================================================ */
+function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('load '+src)); document.head.appendChild(s); }); }
+let libsReady=false;
+async function ensureLibs(){
+  if(libsReady) return;
+  toast('Подготовка библиотек…', true);
+  if(typeof PptxGenJS==='undefined') await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js');
+  if(typeof html2canvas==='undefined') await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  libsReady=true;
+}
+const PXIN = 96; // px per inch at reference
+
+// render a formula to PNG dataURL for PPTX
+async function mathToPNG(latex, color){
+  const host=document.createElement('div');
+  host.style.cssText='position:fixed;left:-9999px;top:0;padding:8px;background:#fff;display:inline-block;font-size:64px;color:'+(color||'#1a1a1a');
+  host.innerHTML = renderMath(latex);
+  document.body.appendChild(host);
+  try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch(e){}
+  const canvas = await html2canvas(host,{backgroundColor:null, scale:2, logging:false});
+  document.body.removeChild(host);
+  return {url:canvas.toDataURL('image/png'), w:canvas.width/2, h:canvas.height/2};
+}
+
+async function exportPPTX(){
+  try{
+    await ensureLibs();
+    toast('Сборка PPTX…', true);
+    const pptx = new PptxGenJS();
+    pptx.defineLayout({name:'REF', width:REF_W/PXIN, height:REF_H/PXIN});
+    pptx.layout='REF';
+
+    for(const s of state.slides){
+      const slide = pptx.addSlide();
+      slide.background = {color:'FFFFFF'};
+      for(const el of s.elements){
+        const x=px.x(el.gx)/PXIN, y=px.y(el.gy)/PXIN, w=px.w(el.gw)/PXIN, h=px.h(el.gh)/PXIN;
+        if(el.type==='text'||el.type==='heading'){
+          slide.addText(el.text||'', {
+            x,y,w,h,
+            fontFace:'Georgia',
+            fontSize: Math.round(el.fontSize*0.72),
+            color: (el.color||'#1a1a1a').replace('#',''),
+            bold: !!el.bold, italic: !!el.italic,
+            align: el.align||'left',
+            valign: el.valign==='middle'?'middle':el.valign==='bottom'?'bottom':'top',
+            lineSpacingMultiple:1.05,
+            wrap:true, autoFit:true, margin:2,
+          });
+        } else if(el.type==='image'){
+          const pad=0.07;
+          slide.addShape(pptx.ShapeType.rect, {x:x-pad,y:y-pad,w:w+pad*2,h:h+pad*2, fill:{color:'FFFFFF'}, line:{color:'E7E7E4',width:0.75},
+            shadow:{type:'outer', color:'000000', opacity:0.28, blur:9, offset:5, angle:90}});
+          slide.addImage({data:el.src, x,y,w,h, sizing:{type:(el.fit==='cover'?'cover':'contain'), w,h}});
+        } else if(el.type==='math'){
+          try{
+            const png = await mathToPNG(el.latex, el.color);
+            const ar = png.w/png.h;
+            let iw=w, ih=w/ar;
+            if(ih>h){ ih=h; iw=h*ar; }
+            const ix = x + (el.align==='center'?(w-iw)/2: el.align==='right'?(w-iw):0);
+            const iy = y + (h-ih)/2;
+            slide.addImage({data:png.url, x:ix, y:iy, w:iw, h:ih});
+          }catch(err){
+            slide.addText(el.latex||'', {x,y,w,h,fontFace:'Courier New',fontSize:Math.round(el.fontSize*0.6),color:'1A1A1A',align:el.align||'left',valign:'middle'});
+          }
+        }
+      }
+    }
+    await pptx.writeFile({fileName:'presentation.pptx'});
+    hideToast(); toast('PPTX готов');
+  }catch(err){
+    console.error(err); hideToast();
+    toast('Не удалось собрать PPTX (проверьте доступ к сети)');
+  }
+}
+
+/* ============================================================
+   Boot
+   ============================================================ */
+function boot(){
+  paintIcons(document);
+  $('#btn-grid').classList.toggle('on', state.showGrid);
+  renderAll();
+  // re-render math once KaTeX has surely loaded (initial paint may precede it)
+  let tries=0;
+  const iv=setInterval(()=>{
+    tries++;
+    if(typeof katex!=='undefined'){ mathCache.clear(); renderStage(); renderRail(); clearInterval(iv); }
+    if(tries>40) clearInterval(iv);
+  },120);
+  window.addEventListener('resize', ()=>{ if(!present.classList.contains('show')) renderStage(); });
+}
+boot();
+</script>
+</body>
+</html>

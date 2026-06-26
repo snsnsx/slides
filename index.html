@@ -38,7 +38,7 @@
   ::selection{background:#1a1a1a; color:#fff}
 
   /* ---------- App shell ---------- */
-  .app{display:grid; grid-template-rows:auto 1fr; height:100vh}
+  .app{display:grid; grid-template-rows:auto 1fr auto; height:100vh}
   .topbar{
     display:flex; align-items:center; gap:14px; padding:0 14px; height:46px;
     background:var(--panel); border-bottom:1px solid var(--line); user-select:none;
@@ -61,6 +61,8 @@
   .tool.solid{background:var(--ink); color:#fff; border-color:var(--ink)}
   .tool.solid:hover{background:#000}
   .tool.icon-only{padding:0; width:30px; justify-content:center}
+  .tool.on{background:var(--ink); color:#fff; border-color:var(--ink)}
+  .tool.on:hover{background:#000; color:#fff}
 
   .menu{position:relative}
   .menu-pop{
@@ -142,7 +144,6 @@
   .editing .el{cursor:default}
   .el.selectable{cursor:move}
   .el.selected{outline:1.5px solid var(--sel); outline-offset:0}
-  .el.editing-text{cursor:text}
   .handle{position:absolute; width:9px; height:9px; background:#fff; border:1.5px solid var(--sel); border-radius:2px; z-index:5}
   .handle.h-nw{left:-5px; top:-5px; cursor:nwse-resize}
   .handle.h-ne{right:-5px; top:-5px; cursor:nesw-resize}
@@ -272,6 +273,23 @@
   @media (max-width:1180px){ .body{grid-template-columns:160px 1fr 220px} }
   @media (max-width:1024px){ .body{grid-template-columns:148px 1fr 206px} }
 
+  /* ---------- Bottom edit bar ---------- */
+  .editbar{display:flex; align-items:flex-start; gap:12px; padding:9px 16px; min-height:56px; background:var(--panel); border-top:1px solid var(--line); user-select:none}
+  .editbar .eb-tag{display:inline-flex; align-items:center; gap:7px; height:34px; flex:none; color:var(--ink-2); font-size:10px; letter-spacing:.08em; text-transform:uppercase; white-space:nowrap}
+  .editbar .eb-tag .ico{width:15px; height:15px; opacity:.75}
+  .editbar.empty .eb-tag{color:var(--muted)}
+  .editbar .eb-input-wrap{flex:1; min-width:0}
+  .editbar .eb-input{width:100%; resize:none; border:1px solid var(--line-2); border-radius:var(--radius); padding:7px 10px; font-family:var(--serif); font-size:15px; line-height:1.4; height:34px; max-height:132px; outline:none; background:var(--panel-2); color:var(--ink); overflow:auto; display:block; box-sizing:border-box}
+  .editbar .eb-input.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:13px}
+  .editbar .eb-input:focus{border-color:var(--ink); background:var(--panel)}
+  .editbar .eb-input:disabled{background:transparent; color:var(--muted); border-style:dashed; cursor:default}
+  .editbar .eb-hint{flex:none; align-self:center; color:var(--muted); font-size:11px; max-width:300px; text-align:right; line-height:1.5}
+  .editbar .eb-hint code{background:var(--panel-2); padding:1px 5px; border-radius:3px; border:1px solid var(--line); font-size:11px}
+  @media (max-width:1024px){ .editbar .eb-hint{display:none} }
+
+  /* ---------- Slide numbers ---------- */
+  .slide-num{position:absolute; right:30px; bottom:18px; font-family:var(--serif); font-size:22px; color:#9a9a9a; font-variant-numeric:tabular-nums; pointer-events:none; z-index:1}
+
   @media (prefers-reduced-motion: reduce){*{transition:none !important; animation:none !important}}
 </style>
 </head>
@@ -287,6 +305,8 @@
     <button class="tool" data-add="image" title="Изображение — I"><span class="ico" data-i="image"></span>Изображение</button>
     <div class="spacer"></div>
     <button class="tool icon-only" id="btn-grid" title="Сетка — G"><span class="ico" data-i="grid"></span></button>
+    <button class="tool icon-only" id="btn-nums" title="Нумерация слайдов"><span class="ico" data-i="nums"></span></button>
+    <button class="tool icon-only" id="btn-fit" title="Авторазмер текста и формул под кегль"><span class="ico" data-i="fit"></span></button>
     <button class="tool ghost" id="btn-present" title="Показ — P"><span class="ico" data-i="play"></span>Показ</button>
     <div class="save-status" id="save-status"></div>
     <div class="menu" id="export-menu">
@@ -322,6 +342,9 @@
 
     <aside class="col insp" id="inspector"></aside>
   </div>
+
+  <!-- Bottom content edit bar -->
+  <footer class="editbar empty" id="editbar"></footer>
 </div>
 
 <!-- Present overlay -->
@@ -359,7 +382,7 @@
         <h3>Элемент</h3>
         <div class="kr"><span>Перемещать по сетке</span><span><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd></span></div>
         <div class="kr"><span>След. / пред. элемент</span><span><kbd>Tab</kbd> <kbd>⇧Tab</kbd></span></div>
-        <div class="kr"><span>Редактировать текст</span><kbd>Enter</kbd></div>
+        <div class="kr"><span>Редактировать содержимое</span><span><kbd>Enter</kbd> · строка снизу</span></div>
         <div class="kr"><span>Дублировать</span><kbd>⌘/Ctrl D</kbd></div>
         <div class="kr"><span>Копировать / вставить</span><span><kbd>⌘/Ctrl C</kbd> <kbd>V</kbd></span></div>
         <div class="kr"><span>Вырезать</span><kbd>⌘/Ctrl X</kbd></div>
@@ -369,6 +392,8 @@
         <h3>Прочее</h3>
         <div class="kr"><span>Отменить / вернуть</span><span><kbd>⌘/Ctrl Z</kbd> <kbd>⇧Z</kbd></span></div>
         <div class="kr"><span>Показать сетку</span><kbd>G</kbd></div>
+        <div class="kr"><span>Нумерация слайдов</span><span style="color:var(--muted)">кнопка № на панели</span></div>
+        <div class="kr"><span>Авторазмер под кегль</span><span style="color:var(--muted)">кнопка на панели</span></div>
         <div class="kr"><span>Сохранить проект</span><kbd>⌘/Ctrl S</kbd></div>
         <div class="kr"><span>Эта справка</span><kbd>?</kbd></div>
 
@@ -439,6 +464,8 @@ const ICONS = {
   save:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3.5 3.5h7L13 6v6.5h-9.5z"/><rect x="6" y="3.5" width="4" height="3"/><rect x="5.5" y="9" width="5" height="3.5"/></svg>',
   open:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2.5 5.5h4l1.2 1.5H13V12H2.5z"/><path d="M2.5 5.5V4h3l1 1.2"/></svg>',
   full:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 6V3h3M13 6V3h-3M3 10v3h3M13 10v3h-3"/></svg>',
+  nums:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 4h7M6 8h7M6 12h7"/><path d="M2.2 3.4 3.2 3v3.3"/><path d="M2 11.9c0-.7 1.4-.7 1.4 0 0 .5-1.4 1-1.4 1.6h1.5" stroke-width="1.2"/></svg>',
+  fit:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3.5" y="3.5" width="9" height="9" rx="1"/><path d="M8 5.6v4.8M6.3 7.1 8 5.4l1.7 1.7M6.3 8.9 8 10.6l1.7-1.7"/></svg>',
 };
 function paintIcons(root){
   (root||document).querySelectorAll('[data-i]').forEach(s=>{ const n=s.dataset.i; if(ICONS[n]) s.innerHTML=ICONS[n]; });
@@ -455,7 +482,7 @@ function newSlide(){ return { id:'s'+(uid++), elements:[] }; }
 
 function defaultText(type){
   if(type==='heading') return {text:'Заголовок слайда', fontSize:56, align:'left', valign:'top', bold:true, italic:false, color:INK_COLORS[0]};
-  return {text:'Основной текст. Дважды кликните, чтобы изменить.', fontSize:30, align:'left', valign:'top', bold:false, italic:false, color:INK_COLORS[0]};
+  return {text:'Основной текст. Измените его в строке ввода снизу.', fontSize:30, align:'left', valign:'top', bold:false, italic:false, color:INK_COLORS[0]};
 }
 
 const state = {
@@ -463,6 +490,8 @@ const state = {
   current:0,
   selected:null,
   showGrid:true,
+  slideNumbers:false,
+  autoFit:false,
 };
 function seedSlide(){
   const s = newSlide();
@@ -583,6 +612,13 @@ function addHandles(d){
   });
 }
 
+function slideNumberNode(i){
+  const d = document.createElement('div');
+  d.className = 'slide-num';
+  d.textContent = (i+1);
+  return d;
+}
+
 /* ============================================================
    Editor stage
    ============================================================ */
@@ -613,6 +649,7 @@ function renderStage(){
   const scale = fitStage();
   stage.querySelectorAll('.el').forEach(n=>n.remove());
   const exHint = stage.querySelector('.stage-empty'); if(exHint) exHint.remove();
+  const exNum = stage.querySelector('.slide-num'); if(exNum) exNum.remove();
   const s = curSlide();
   s.elements.forEach(el=>{
     const node = buildElement(el,'edit');
@@ -623,6 +660,7 @@ function renderStage(){
     hint.innerHTML = 'Пустой слайд<small>Добавьте элемент: <b>H</b> заголовок · <b>T</b> текст · <b>F</b> формула · <b>I</b> изображение.<br>Изображение можно просто перетащить на холст.</small>';
     stage.appendChild(hint);
   }
+  if(state.slideNumbers) stage.appendChild(slideNumberNode(state.current));
   gridOverlay.classList.toggle('show', state.showGrid);
   bindStageEvents();
 }
@@ -649,8 +687,6 @@ stage.addEventListener('pointerdown', e=>{
   if(elNode){
     const id = elNode.dataset.id;
     if(state.selected!==id){ state.selected=id; renderStage(); renderInspector(); }
-    // don't start drag if currently editing this text
-    if(elNode.classList.contains('editing-text')) return;
     startMove(e, id);
   } else {
     if(state.selected){ state.selected=null; renderStage(); renderInspector(); }
@@ -659,8 +695,7 @@ stage.addEventListener('pointerdown', e=>{
 stage.addEventListener('dblclick', e=>{
   const elNode = e.target.closest('.el'); if(!elNode) return;
   const el = findEl(elNode.dataset.id); if(!el) return;
-  if(el.type==='text'||el.type==='heading'){ beginTextEdit(elNode, el); }
-  else if(el.type==='math'){ const t=$('#tex-input'); if(t){ t.focus(); t.select(); } }
+  if(el.type==='text'||el.type==='heading'||el.type==='math'){ focusEditbar(); }
 });
 
 function startMove(e, id){
@@ -725,34 +760,61 @@ function liveUpdateEl(el){
   syncInspectorPos(el);
 }
 
-/* ---------- inline text editing ---------- */
-let editing = null;
-function beginTextEdit(elNode, el){
-  const line = elNode.querySelector('.line');
-  elNode.classList.add('editing-text');
-  line.setAttribute('contenteditable','true');
-  line.style.cursor='text';
-  editing = {id:el.id, before:el.text};
-  pushHistory();
-  line.focus();
-  // place caret at end
-  const range=document.createRange(); range.selectNodeContents(line); range.collapse(false);
-  const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
-  line.addEventListener('input', onTextInput);
-  line.addEventListener('blur', endTextEdit, {once:true});
+/* ---------- Bottom edit bar (single place to edit element content) ---------- */
+const editbar = $('#editbar');
+function autoGrow(t){ t.style.height='auto'; t.style.height=Math.min(t.scrollHeight, 132)+'px'; }
+function focusEditbar(){
+  const inp = $('#eb-input', editbar);
+  if(inp && !inp.disabled){ inp.focus(); const v=inp.value; try{ inp.setSelectionRange(v.length, v.length); }catch(e){} }
 }
-function onTextInput(e){
-  const el = findEl(editing.id); if(!el) return;
-  el.text = e.target.innerText;
-  scheduleThumb();
+function renderEditbar(){
+  const el = state.selected ? findEl(state.selected) : null;
+  const editable = !!el && (el.type==='text'||el.type==='heading'||el.type==='math');
+  // Preserve caret: don't rebuild while the user is typing into this same element
+  const active = document.activeElement;
+  if(active && active.id==='eb-input' && editable && active.dataset.id===el.id) return;
+
+  if(!editable){
+    editbar.className = 'editbar empty';
+    const ph = el ? 'У изображения нет текстового содержимого' : 'Выделите текст, заголовок или формулу, чтобы изменить содержимое здесь';
+    editbar.innerHTML =
+      '<div class="eb-tag"><span class="ico" data-i="text"></span><span>'+(el?'Нет содержимого':'Содержимое')+'</span></div>'+
+      '<div class="eb-input-wrap"><textarea class="eb-input" id="eb-input" disabled placeholder="'+ph+'"></textarea></div>';
+    paintIcons(editbar);
+    return;
+  }
+
+  const isMath = el.type==='math';
+  const icon = isMath ? 'math' : (el.type==='heading' ? 'heading' : 'text');
+  const label = isMath ? 'Формула · LaTeX' : (el.type==='heading' ? 'Заголовок' : 'Текст');
+  const ph = isMath ? 'Формула в LaTeX: \\frac{a}{b}, \\int_0^1 x\\,dx …' : 'Введите текст…';
+  editbar.className = 'editbar';
+  editbar.innerHTML =
+    '<div class="eb-tag"><span class="ico" data-i="'+icon+'"></span><span>'+label+'</span></div>'+
+    '<div class="eb-input-wrap"><textarea class="eb-input'+(isMath?' mono':'')+'" id="eb-input" spellcheck="'+(isMath?'false':'true')+'" placeholder="'+ph+'"></textarea></div>'+
+    (isMath
+      ? '<div class="eb-hint"><code>\\frac{a}{b}</code> · <code>\\sum_{i=1}^{n}</code> · <code>\\sqrt{x}</code></div>'
+      : '<div class="eb-hint">Enter — перенос строки</div>');
+  const inp = $('#eb-input', editbar);
+  inp.value = isMath ? (el.latex||'') : (el.text||'');
+  inp.dataset.id = el.id;
+  paintIcons(editbar);
+  autoGrow(inp);
+  bindEditbar(el, inp, isMath);
 }
-function endTextEdit(e){
-  const line = e.target;
-  line.removeAttribute('contenteditable');
-  line.removeEventListener('input', onTextInput);
-  const node = line.closest('.el'); if(node) node.classList.remove('editing-text');
-  editing = null;
-  renderInspector();
+function bindEditbar(el, inp, isMath){
+  let started = false;
+  inp.addEventListener('focus', ()=>{ started=false; });
+  inp.addEventListener('input', ()=>{
+    if(!started){ started=true; pushHistory(); }
+    if(isMath){ el.latex=inp.value; refreshEl(el, true); }
+    else { el.text=inp.value; refreshEl(el, false); }
+    autoGrow(inp);
+    scheduleSave();
+  });
+  inp.addEventListener('keydown', e=>{
+    if(e.key==='Escape'){ e.preventDefault(); inp.blur(); }
+  });
 }
 
 /* ============================================================
@@ -767,6 +829,7 @@ function renderInspector(){
       'Выберите элемент, чтобы изменить его,<br>или вставьте новый: '+
       '<kbd>H</kbd> <kbd>T</kbd> <kbd>F</kbd> <kbd>I</kbd></div>';
     paintIcons(inspector);
+    renderEditbar();
     return;
   }
   let html = '';
@@ -790,9 +853,8 @@ function renderInspector(){
     html += '<div class="row"><div class="lbl">Цвет</div>'+swatches(el.color)+'</div>';
     html += '</div>';
   } else if(el.type==='math'){
-    html += '<div class="group"><div class="group-title">LaTeX</div>';
-    html += '<textarea class="tex" id="tex-input" spellcheck="false">'+escapeHtml(el.latex||'')+'</textarea>';
-    html += '<div class="tex-hint">Например: <code>\\frac{a}{b}</code>, <code>\\int_0^1 x\\,dx</code>, <code>\\sum_{i=1}^{n}</code></div>';
+    html += '<div class="group"><div class="group-title">Формула</div>';
+    html += '<div class="tex-hint">Содержимое формулы (LaTeX) — в строке ввода снизу.</div>';
     html += sizeRow('Размер', el.fontSize, 10, 160);
     html += '<div class="row"><div class="lbl">Выравн.</div>'+segAlign(el.align)+'</div>';
     html += '<div class="row"><div class="lbl">Цвет</div>'+swatches(el.color)+'</div>';
@@ -816,6 +878,7 @@ function renderInspector(){
   inspector.innerHTML = html;
   paintIcons(inspector);
   bindInspector(el);
+  renderEditbar();
 }
 
 function sizeRow(label,val,min,max){
@@ -887,19 +950,69 @@ function bindInspector(el){
       refreshEl(el); renderInspector();
     });
   });
-  // tex live
-  const tex=$('#tex-input',inspector);
-  if(tex){
-    let t0=el.latex;
-    tex.addEventListener('input',()=>{ el.latex=tex.value; refreshEl(el,true); scheduleThumb(); });
-    tex.addEventListener('focus',()=>{ t0=el.latex; pushHistory(); });
-  }
 }
 function syncInspectorPos(el){
   $$('[data-pos]',inspector).forEach(inp=>{ inp.value = el[inp.dataset.pos]; });
 }
+/* ---------- Auto-fit element size to content, given the font size (кегль) ---------- */
+let _measureHost = null;
+function measureHost(){
+  if(_measureHost && _measureHost.isConnected) return _measureHost;
+  const m = document.createElement('div');
+  m.style.cssText = 'position:fixed;left:-99999px;top:0;visibility:hidden;pointer-events:none';
+  document.body.appendChild(m);
+  _measureHost = m; return m;
+}
+function isTextLike(el){ return el && (el.type==='text'||el.type==='heading'||el.type==='math'); }
+function naturalTextHeight(el){
+  const host = measureHost();
+  const box = document.createElement('div');
+  box.style.cssText = 'width:'+px.w(el.gw)+'px;box-sizing:border-box';
+  const content = document.createElement('div');
+  content.style.cssText = 'padding:2px 4px;box-sizing:border-box;width:100%';
+  const line = document.createElement('div');
+  line.style.cssText = 'width:100%;white-space:pre-wrap;word-break:break-word;font-family:var(--serif);line-height:1.18;'+
+    'font-size:'+el.fontSize+'px;font-weight:'+(el.bold?600:400)+';font-style:'+(el.italic?'italic':'normal')+';text-align:'+el.align+'';
+  line.textContent = el.text && el.text.length ? el.text : ' ';
+  content.appendChild(line); box.appendChild(content); host.appendChild(box);
+  const h = box.getBoundingClientRect().height;
+  host.removeChild(box);
+  return h;
+}
+function naturalMathSize(el){
+  const host = measureHost();
+  const box = document.createElement('div');
+  box.style.cssText = 'display:inline-block;font-size:'+el.fontSize+'px;color:#000';
+  box.innerHTML = renderMath(el.latex);
+  const kd = box.querySelector('.katex-display'); if(kd) kd.style.margin = '0';
+  host.appendChild(box);
+  const r = box.getBoundingClientRect();
+  host.removeChild(box);
+  return { w:r.width, h:r.height };
+}
+function applyAutoFit(el){
+  if(el.type==='text'||el.type==='heading'){
+    const h = naturalTextHeight(el);
+    const gh = clamp(Math.ceil((h + 0.5)/CELL), 1, ROWS);
+    el.gh = gh;
+    el.gy = clamp(el.gy, 0, ROWS-gh);
+  } else if(el.type==='math'){
+    const s = naturalMathSize(el);
+    if(!s.w || !s.h) return; // KaTeX not ready yet — keep current box
+    const gw = clamp(Math.ceil((s.w + 2)/CELL), 1, COLS);
+    const gh = clamp(Math.ceil((s.h + 2)/CELL), 1, ROWS);
+    el.gw = gw; el.gh = gh;
+    el.gx = clamp(el.gx, 0, COLS-gw);
+    el.gy = clamp(el.gy, 0, ROWS-gh);
+  }
+}
+function autoFitAll(){
+  state.slides.forEach(s=> s.elements.forEach(el=>{ if(isTextLike(el)) applyAutoFit(el); }));
+}
+
 function refreshEl(el, mathChanged){
   if(mathChanged) mathCache.delete(el.latex);
+  if(state.autoFit && isTextLike(el)){ applyAutoFit(el); syncInspectorPos(el); }
   const node = stage.querySelector('.el[data-id="'+el.id+'"]');
   if(node){
     const fresh = buildElement(el,'edit');
@@ -932,6 +1045,7 @@ function addElement(type){
   else if(type==='math') el = mk('math', centeredPos(5,1), {latex:'\\frac{\\partial f}{\\partial x}', fontSize:42, align:'center', color:INK_COLORS[0]});
   curSlide().elements.push(el);
   state.selected = el.id;
+  if(state.autoFit && isTextLike(el)) applyAutoFit(el);
   renderStage(); renderInspector(); scheduleThumb();
 }
 
@@ -1040,6 +1154,7 @@ function renderRail(){
     const t=document.createElement('div'); t.className='thumb'+(i===state.current?' active':'');
     const mini=document.createElement('div'); mini.className='mini';
     s.elements.forEach(el=> mini.appendChild(buildElement(el,'view')));
+    if(state.slideNumbers) mini.appendChild(slideNumberNode(i));
     t.appendChild(mini);
     const acts=document.createElement('div'); acts.className='thumb-actions';
     const dup=document.createElement('button'); dup.className='ta-btn'; dup.innerHTML=ICONS.copy; dup.title='Дублировать слайд'; dup.draggable=false;
@@ -1120,8 +1235,10 @@ function fitPresent(){
 }
 function renderPresent(){
   presentStage.querySelectorAll('.el').forEach(n=>n.remove());
+  const exNum = presentStage.querySelector('.slide-num'); if(exNum) exNum.remove();
   const s=state.slides[presentIdx];
   s.elements.forEach(el=> presentStage.appendChild(buildElement(el,'view')));
+  if(state.slideNumbers) presentStage.appendChild(slideNumberNode(presentIdx));
   $('#present-counter').textContent=(presentIdx+1)+' / '+state.slides.length;
   const bar=$('#present-progress i');
   if(bar){ bar.style.width = (state.slides.length>1 ? (presentIdx/(state.slides.length-1))*100 : 100)+'%'; }
@@ -1190,7 +1307,7 @@ document.addEventListener('keydown', e=>{
     case 'PageUp': e.preventDefault(); gotoSlide(state.current-1); break;
     case 'PageDown': e.preventDefault(); gotoSlide(state.current+1); break;
     case 'Tab': e.preventDefault(); selectNext(e.shiftKey?-1:1); break;
-    case 'Enter': if(state.selected){ const el=findEl(state.selected); if(el&&(el.type==='text'||el.type==='heading')){ e.preventDefault(); const node=stage.querySelector('.el[data-id="'+el.id+'"]'); if(node) beginTextEdit(node,el);} } break;
+    case 'Enter': if(state.selected){ const el=findEl(state.selected); if(el&&(el.type==='text'||el.type==='heading'||el.type==='math')){ e.preventDefault(); focusEditbar(); } } break;
     case 'Delete': case 'Backspace': if(state.selected){ e.preventDefault(); deleteSelected(); } break;
     case 'Escape': if(state.selected){ state.selected=null; renderStage(); renderInspector(); } break;
     case 'd': case 'D': if(meta){ e.preventDefault(); duplicateSelected(); } break;
@@ -1207,6 +1324,27 @@ document.addEventListener('keydown', e=>{
 
 function toggleGrid(){ state.showGrid=!state.showGrid; gridOverlay.classList.toggle('show',state.showGrid); $('#btn-grid').classList.toggle('on',state.showGrid); }
 
+function toggleSlideNumbers(){
+  state.slideNumbers=!state.slideNumbers;
+  $('#btn-nums').classList.toggle('on', state.slideNumbers);
+  renderStage(); renderRail();
+  if(present.classList.contains('show')) renderPresent();
+  scheduleSave();
+  toast(state.slideNumbers ? 'Нумерация слайдов включена' : 'Нумерация слайдов выключена');
+}
+function toggleAutoFit(){
+  state.autoFit=!state.autoFit;
+  $('#btn-fit').classList.toggle('on', state.autoFit);
+  if(state.autoFit){
+    pushHistory();
+    autoFitAll();
+    toast('Авторазмер включён · блоки подогнаны под кегль');
+  } else {
+    toast('Авторазмер выключен');
+  }
+  renderAll();
+}
+
 /* ============================================================
    Toolbar wiring
    ============================================================ */
@@ -1214,6 +1352,8 @@ $$('[data-add]').forEach(b=> b.addEventListener('click',()=> addElement(b.datase
 $('#rail-add').addEventListener('click', addSlide);
 $('#btn-present').addEventListener('click', openPresent);
 $('#btn-grid').addEventListener('click', toggleGrid);
+$('#btn-nums').addEventListener('click', toggleSlideNumbers);
+$('#btn-fit').addEventListener('click', toggleAutoFit);
 $('#btn-help').addEventListener('click', ()=> $('#help').classList.add('show'));
 $('#help-close').addEventListener('click', ()=> $('#help').classList.remove('show'));
 $('#help').addEventListener('click', e=>{ if(e.target.id==='help') $('#help').classList.remove('show'); });
@@ -1234,7 +1374,7 @@ $$('[data-exp]',expMenu).forEach(b=> b.addEventListener('click',()=>{
 $('#file-open').addEventListener('change', e=>{
   const f=e.target.files[0]; e.target.value=''; if(!f) return;
   const r=new FileReader();
-  r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d&&d.slides){ pushHistory(); state.slides=d.slides; state.current=0; state.selected=null; reseedUid(); mathCache.clear(); renderAll(); toast('Проект загружен'); } else toast('Неверный файл'); }catch(err){ toast('Не удалось открыть файл'); } };
+  r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d&&d.slides){ pushHistory(); state.slides=d.slides; state.current=0; state.selected=null; state.slideNumbers=!!d.slideNumbers; state.autoFit=!!d.autoFit; reseedUid(); mathCache.clear(); $('#btn-nums').classList.toggle('on', state.slideNumbers); $('#btn-fit').classList.toggle('on', state.autoFit); if(state.autoFit) autoFitAll(); renderAll(); toast('Проект загружен'); } else toast('Неверный файл'); }catch(err){ toast('Не удалось открыть файл'); } };
   r.readAsText(f);
 });
 
@@ -1258,7 +1398,7 @@ function download(filename, content, mime){
    Export: project JSON
    ============================================================ */
 function exportJSON(){
-  const data = JSON.stringify({version:1, slides:state.slides}, null, 0);
+  const data = JSON.stringify({version:1, slides:state.slides, slideNumbers:state.slideNumbers, autoFit:state.autoFit}, null, 0);
   download('presentation.slides.json', data, 'application/json');
   toast('Проект сохранён');
 }
@@ -1286,7 +1426,7 @@ function elToExportHTML(el){
 
 function buildExportHTML(){
   const slidesHTML = state.slides.map((s,i)=>
-    '<section class="slide" data-i="'+i+'">'+ s.elements.map(elToExportHTML).join('') +'</section>'
+    '<section class="slide" data-i="'+i+'">'+ s.elements.map(elToExportHTML).join('') + (state.slideNumbers?'<div class="slide-num">'+(i+1)+'</div>':'') +'</section>'
   ).join('\n');
 
   const css =
@@ -1297,6 +1437,7 @@ function buildExportHTML(){
 '.slide{position:absolute;left:0;top:0;width:'+REF_W+'px;height:'+REF_H+'px;background:#fff;transform-origin:top left;opacity:0;pointer-events:none;transition:opacity .25s ease}'+
 '.slide.active{opacity:1;pointer-events:auto}'+
 '.el math{font-size:1em}'+
+'.slide-num{position:absolute;right:30px;bottom:18px;font-size:22px;color:#9a9a9a;font-variant-numeric:tabular-nums}'+
 '.imgframe{width:100%;height:100%;background:#fff;padding:12px;border:1px solid #e7e7e4;box-shadow:0 10px 30px rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.10)}'+
 '.imgframe img{display:block;width:100%;height:100%}'+
 '#hud{position:fixed;bottom:16px;right:20px;color:rgba(255,255,255,.5);font-family:system-ui,sans-serif;font-size:12px;letter-spacing:.04em;font-variant-numeric:tabular-nums;display:flex;gap:14px;align-items:center}'+
@@ -1406,6 +1547,9 @@ async function exportPPTX(){
           }
         }
       }
+      if(state.slideNumbers){
+        slide.addText(String(state.slides.indexOf(s)+1), {x:(REF_W-92)/PXIN, y:(REF_H-56)/PXIN, w:62/PXIN, h:34/PXIN, fontFace:'Georgia', fontSize:16, color:'9A9A9A', align:'right', valign:'middle', margin:0});
+      }
     }
     await pptx.writeFile({fileName:'presentation.pptx'});
     hideToast(); toast('PPTX готов');
@@ -1431,7 +1575,7 @@ function setSaveStatus(kind){
 function persist(){
   if(!storageOK) return;
   try{
-    const data=JSON.stringify({version:1, slides:state.slides, current:state.current});
+    const data=JSON.stringify({version:1, slides:state.slides, current:state.current, slideNumbers:state.slideNumbers, autoFit:state.autoFit});
     if(data!==lastSaved){ localStorage.setItem(SAVE_KEY, data); lastSaved=data; }
     setSaveStatus('saved');
   }catch(e){ storageOK=false; setSaveStatus('off'); }
@@ -1446,6 +1590,8 @@ function restore(){
     if(d && Array.isArray(d.slides) && d.slides.length){
       state.slides=d.slides;
       state.current=clamp(d.current||0, 0, d.slides.length-1);
+      state.slideNumbers=!!d.slideNumbers;
+      state.autoFit=!!d.autoFit;
       lastSaved=raw;
       return true;
     }
@@ -1485,6 +1631,8 @@ function boot(){
   $('#btn-grid').classList.toggle('on', state.showGrid);
   const restored = restore();
   reseedUid();
+  $('#btn-nums').classList.toggle('on', state.slideNumbers);
+  $('#btn-fit').classList.toggle('on', state.autoFit);
   renderAll();
   setSaveStatus(storageOK ? 'saved' : 'off');
   if(restored) toast('Восстановлен черновик');
@@ -1492,7 +1640,13 @@ function boot(){
   let tries=0;
   const iv=setInterval(()=>{
     tries++;
-    if(typeof katex!=='undefined'){ mathCache.clear(); renderStage(); renderRail(); clearInterval(iv); }
+    if(typeof katex!=='undefined'){
+      mathCache.clear();
+      if(state.autoFit) autoFitAll();
+      renderStage(); renderRail();
+      if(present.classList.contains('show')) renderPresent();
+      clearInterval(iv);
+    }
     if(tries>40) clearInterval(iv);
   },120);
   window.addEventListener('resize', ()=>{ if(!present.classList.contains('show')) renderStage(); });

@@ -261,7 +261,7 @@
   .stage-empty b{color:var(--ink-2); font-weight:600}
 
   /* ---------- Drag image onto stage ---------- */
-  .stage-col.drop-active::after{content:"Отпустите, чтобы добавить изображение"; position:absolute; inset:16px; border:2px dashed var(--ink); border-radius:6px; display:flex; align-items:center; justify-content:center; color:var(--ink); background:rgba(255,255,255,.62); font-size:14px; letter-spacing:.01em; pointer-events:none; z-index:30}
+  .stage-col.drop-active::after{content:"Отпустите, чтобы вставить медиа"; position:absolute; inset:16px; border:2px dashed var(--ink); border-radius:6px; display:flex; align-items:center; justify-content:center; color:var(--ink); background:rgba(255,255,255,.62); font-size:14px; letter-spacing:.01em; pointer-events:none; z-index:30}
 
   /* ---------- Present hint + progress ---------- */
   .present-hint{position:fixed; top:22px; left:50%; transform:translateX(-50%) translateY(-8px); background:rgba(255,255,255,.1); color:rgba(255,255,255,.82); border:1px solid rgba(255,255,255,.16); padding:8px 15px; border-radius:999px; font-size:12px; letter-spacing:.02em; opacity:0; pointer-events:none; transition:opacity .3s ease, transform .3s ease; z-index:210}
@@ -274,12 +274,12 @@
   @media (max-width:1024px){ .body{grid-template-columns:148px 1fr 206px} }
 
   /* ---------- Bottom edit bar ---------- */
-  .editbar{display:flex; align-items:flex-start; gap:12px; padding:9px 16px; min-height:56px; background:var(--panel); border-top:1px solid var(--line); user-select:none}
+  .editbar{display:flex; align-items:flex-start; gap:12px; padding:10px 16px; min-height:88px; background:var(--panel); border-top:1px solid var(--line); user-select:none}
   .editbar .eb-tag{display:inline-flex; align-items:center; gap:7px; height:34px; flex:none; color:var(--ink-2); font-size:10px; letter-spacing:.08em; text-transform:uppercase; white-space:nowrap}
   .editbar .eb-tag .ico{width:15px; height:15px; opacity:.75}
   .editbar.empty .eb-tag{color:var(--muted)}
   .editbar .eb-input-wrap{flex:1; min-width:0}
-  .editbar .eb-input{width:100%; resize:none; border:1px solid var(--line-2); border-radius:var(--radius); padding:7px 10px; font-family:var(--serif); font-size:15px; line-height:1.4; height:34px; max-height:132px; outline:none; background:var(--panel-2); color:var(--ink); overflow:auto; display:block; box-sizing:border-box}
+  .editbar .eb-input{width:100%; resize:none; border:1px solid var(--line-2); border-radius:var(--radius); padding:9px 11px; font-family:var(--serif); font-size:15px; line-height:1.45; height:64px; min-height:64px; max-height:240px; outline:none; background:var(--panel-2); color:var(--ink); overflow:auto; display:block; box-sizing:border-box}
   .editbar .eb-input.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:13px}
   .editbar .eb-input:focus{border-color:var(--ink); background:var(--panel)}
   .editbar .eb-input:disabled{background:transparent; color:var(--muted); border-style:dashed; cursor:default}
@@ -378,11 +378,14 @@
         <div class="kr"><span>Текст</span><kbd>T</kbd></div>
         <div class="kr"><span>Формула (LaTeX)</span><kbd>F</kbd></div>
         <div class="kr"><span>Изображение / GIF</span><kbd>I</kbd></div>
+        <div class="kr"><span>Вставить медиа</span><span style="color:var(--muted)">буфер · перетаскивание</span></div>
 
         <h3>Элемент</h3>
         <div class="kr"><span>Перемещать по сетке</span><span><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd></span></div>
         <div class="kr"><span>След. / пред. элемент</span><span><kbd>Tab</kbd> <kbd>⇧Tab</kbd></span></div>
         <div class="kr"><span>Редактировать содержимое</span><span><kbd>Enter</kbd> · строка снизу</span></div>
+        <div class="kr"><span>Выйти из редактирования</span><span><kbd>Esc</kbd> <kbd>⇧↵</kbd></span></div>
+        <div class="kr"><span>Размер кегля</span><span><kbd>=</kbd> <kbd>−</kbd></span></div>
         <div class="kr"><span>Дублировать</span><kbd>⌘/Ctrl D</kbd></div>
         <div class="kr"><span>Копировать / вставить</span><span><kbd>⌘/Ctrl C</kbd> <kbd>V</kbd></span></div>
         <div class="kr"><span>Вырезать</span><kbd>⌘/Ctrl X</kbd></div>
@@ -400,7 +403,7 @@
         <h3>Мышь</h3>
         <div class="kr"><span>Переупорядочить слайды</span><span style="color:var(--muted)">перетащить</span></div>
         <div class="kr"><span>Дублировать / удалить слайд</span><span style="color:var(--muted)">навести на слайд</span></div>
-        <div class="kr"><span>Добавить изображение</span><span style="color:var(--muted)">перетащить файл</span></div>
+        <div class="kr"><span>Добавить изображение</span><span style="color:var(--muted)">файл, ссылка или ⌘/Ctrl V</span></div>
       </div>
     </div>
   </div>
@@ -419,14 +422,13 @@
    only the scale changes.
    ============================================================ */
 
-/* ---------- Geometry: 12-square magnetic grid ---------- */
-const REF_W = 1280, REF_H = 720, COLS = 12;
-const CELL = Math.floor(REF_W / COLS);            // 106
-const ROWS = Math.floor(REF_H / CELL);            // 6
-const GRID_W = CELL * COLS;                        // 1272
-const GRID_H = CELL * ROWS;                        // 636
-const OFF_X = Math.round((REF_W - GRID_W) / 2);    // leftover -> margin
-const OFF_Y = Math.round((REF_H - GRID_H) / 2);    // leftover -> margin
+/* ---------- Geometry: 16×9 square magnetic grid ---------- */
+const REF_W = 1280, REF_H = 720, COLS = 16, ROWS = 9;
+const CELL = 76;                                   // square cell (px in reference space)
+const GRID_W = CELL * COLS;                        // 1216
+const GRID_H = CELL * ROWS;                        // 684
+const OFF_X = Math.round((REF_W - GRID_W) / 2);    // 32 — small symmetric side margin
+const OFF_Y = Math.round((REF_H - GRID_H) / 2);    // 18 — small symmetric top/bottom margin
 
 const px = {
   x: gx => OFF_X + gx * CELL,
@@ -481,8 +483,8 @@ const TYPE_LABEL = {heading:'Заголовок', text:'Текст', math:'Фо�
 function newSlide(){ return { id:'s'+(uid++), elements:[] }; }
 
 function defaultText(type){
-  if(type==='heading') return {text:'Заголовок слайда', fontSize:56, align:'left', valign:'top', bold:true, italic:false, color:INK_COLORS[0]};
-  return {text:'Основной текст. Измените его в строке ввода снизу.', fontSize:30, align:'left', valign:'top', bold:false, italic:false, color:INK_COLORS[0]};
+  if(type==='heading') return {text:'Заголовок слайда', fontSize:56, align:'left', valign:'middle', bold:true, italic:false, color:INK_COLORS[0]};
+  return {text:'Основной текст. Измените его в строке ввода снизу.', fontSize:30, align:'left', valign:'middle', bold:false, italic:false, color:INK_COLORS[0]};
 }
 
 const state = {
@@ -495,9 +497,9 @@ const state = {
 };
 function seedSlide(){
   const s = newSlide();
-  s.elements.push(mk('heading',{gx:1,gy:1,gw:10,gh:1},defaultText('heading')));
-  s.elements.push(mk('math',{gx:1,gy:3,gw:6,gh:1},{latex:'e^{i\\pi}+1=0', fontSize:40, align:'left', color:INK_COLORS[0]}));
-  s.elements.push(mk('text',{gx:1,gy:4,gw:8,gh:1},Object.assign(defaultText('text'),{text:'Тождество Эйлера связывает пять фундаментальных констант.'})));
+  s.elements.push(mk('heading',{gx:1,gy:1,gw:14,gh:1},defaultText('heading')));
+  s.elements.push(mk('math',{gx:1,gy:3,gw:6,gh:2},{latex:'e^{i\\pi}+1=0', fontSize:40, align:'left', color:INK_COLORS[0]}));
+  s.elements.push(mk('text',{gx:1,gy:5,gw:10,gh:2},Object.assign(defaultText('text'),{text:'Тождество Эйлера связывает пять фундаментальных констант.'})));
   return s;
 }
 function mk(type, pos, props){ return Object.assign({id:nid(), type, gx:pos.gx, gy:pos.gy, gw:pos.gw, gh:pos.gh}, props); }
@@ -625,6 +627,7 @@ function slideNumberNode(i){
 const stage = $('#stage');
 const stageCol = $('#stage-col');
 const gridOverlay = $('#grid-overlay');
+const gridLines = $('.lines', gridOverlay);
 
 function fitStage(){
   const pad = 52;
@@ -641,6 +644,7 @@ function fitStage(){
   gridOverlay.style.top = px.y(0)*scale+'px';
   gridOverlay.style.width = GRID_W*scale+'px';
   gridOverlay.style.height = GRID_H*scale+'px';
+  if(gridLines){ const cs = CELL*scale; gridLines.style.backgroundSize = cs+'px '+cs+'px'; gridLines.style.backgroundPosition='0 0'; }
   gridOverlay._scale = scale;
   return scale;
 }
@@ -657,7 +661,7 @@ function renderStage(){
   });
   if(!s.elements.length){
     const hint = document.createElement('div'); hint.className='stage-empty';
-    hint.innerHTML = 'Пустой слайд<small>Добавьте элемент: <b>H</b> заголовок · <b>T</b> текст · <b>F</b> формула · <b>I</b> изображение.<br>Изображение можно просто перетащить на холст.</small>';
+    hint.innerHTML = 'Пустой слайд<small>Добавьте элемент: <b>H</b> заголовок · <b>T</b> текст · <b>F</b> формула · <b>I</b> изображение.<br>Изображение можно перетащить на холст или вставить из буфера (⌘/Ctrl V).</small>';
     stage.appendChild(hint);
   }
   if(state.slideNumbers) stage.appendChild(slideNumberNode(state.current));
@@ -762,7 +766,7 @@ function liveUpdateEl(el){
 
 /* ---------- Bottom edit bar (single place to edit element content) ---------- */
 const editbar = $('#editbar');
-function autoGrow(t){ t.style.height='auto'; t.style.height=Math.min(t.scrollHeight, 132)+'px'; }
+function autoGrow(t){ t.style.height='auto'; t.style.height=Math.max(64, Math.min(t.scrollHeight, 240))+'px'; }
 function focusEditbar(){
   const inp = $('#eb-input', editbar);
   if(inp && !inp.disabled){ inp.focus(); const v=inp.value; try{ inp.setSelectionRange(v.length, v.length); }catch(e){} }
@@ -793,8 +797,8 @@ function renderEditbar(){
     '<div class="eb-tag"><span class="ico" data-i="'+icon+'"></span><span>'+label+'</span></div>'+
     '<div class="eb-input-wrap"><textarea class="eb-input'+(isMath?' mono':'')+'" id="eb-input" spellcheck="'+(isMath?'false':'true')+'" placeholder="'+ph+'"></textarea></div>'+
     (isMath
-      ? '<div class="eb-hint"><code>\\frac{a}{b}</code> · <code>\\sum_{i=1}^{n}</code> · <code>\\sqrt{x}</code></div>'
-      : '<div class="eb-hint">Enter — перенос строки</div>');
+      ? '<div class="eb-hint"><code>\\frac{a}{b}</code> · <code>\\sum_{i=1}^{n}</code> · <code>\\sqrt{x}</code><br>Shift ↵ — выйти</div>'
+      : '<div class="eb-hint">↵ — перенос строки · Shift ↵ — выйти</div>');
   const inp = $('#eb-input', editbar);
   inp.value = isMath ? (el.latex||'') : (el.text||'');
   inp.dataset.id = el.id;
@@ -814,6 +818,7 @@ function bindEditbar(el, inp, isMath){
   });
   inp.addEventListener('keydown', e=>{
     if(e.key==='Escape'){ e.preventDefault(); inp.blur(); }
+    else if(e.key==='Enter' && e.shiftKey){ e.preventDefault(); inp.blur(); }
   });
 }
 
@@ -1040,42 +1045,71 @@ function addElement(type){
   if(type==='image'){ replaceImageFor=null; $('#file-image').click(); return; }
   pushHistory();
   let el;
-  if(type==='heading') el = mk('heading', {gx:1,gy:1,gw:10,gh:1}, defaultText('heading'));
-  else if(type==='text') el = mk('text', centeredPos(7,2), defaultText('text'));
-  else if(type==='math') el = mk('math', centeredPos(5,1), {latex:'\\frac{\\partial f}{\\partial x}', fontSize:42, align:'center', color:INK_COLORS[0]});
+  if(type==='heading') el = mk('heading', {gx:1,gy:1,gw:14,gh:1}, defaultText('heading'));
+  else if(type==='text') el = mk('text', centeredPos(8,2), defaultText('text'));
+  else if(type==='math') el = mk('math', centeredPos(6,2), {latex:'\\frac{\\partial f}{\\partial x}', fontSize:42, align:'center', color:INK_COLORS[0]});
   curSlide().elements.push(el);
   state.selected = el.id;
   if(state.autoFit && isTextLike(el)) applyAutoFit(el);
   renderStage(); renderInspector(); scheduleThumb();
 }
 
+function placeImage(dataURL, ar, name){
+  if(replaceImageFor){
+    const el=findEl(replaceImageFor); replaceImageFor=null;
+    if(el){ pushHistory(); el.src=dataURL; refreshEl(el); }
+    return;
+  }
+  ar = ar || 1.5;
+  // size frame to image aspect within the grid
+  let gw = clamp(Math.round(ar>=1?7:4),1,COLS);
+  let gh = clamp(Math.round(gw/ar),1,ROWS);
+  if(gh<1) gh=1;
+  pushHistory();
+  const pos = centeredPos(gw,gh);
+  const el = mk('image', pos, {src:dataURL, fit:'contain', alt:name||''});
+  curSlide().elements.push(el);
+  state.selected=el.id;
+  renderStage(); renderInspector(); scheduleThumb();
+}
+function addImageFromDataURL(dataURL, name){
+  const img = new Image();
+  img.onload = ()=> placeImage(dataURL, img.naturalWidth/img.naturalHeight, name);
+  img.onerror = ()=> toast('Не удалось загрузить изображение');
+  img.src = dataURL;
+}
 function addImageFromFile(file){
   if(!file || !/^image\//.test(file.type)){ if(file) toast('Это не изображение'); return; }
   const reader = new FileReader();
-  reader.onload = ()=>{
-    const dataURL = reader.result;
-    const img = new Image();
-    img.onload = ()=>{
-      const ar = img.naturalWidth / img.naturalHeight || 1.5;
-      if(replaceImageFor){
-        const el=findEl(replaceImageFor); replaceImageFor=null;
-        if(el){ pushHistory(); el.src=dataURL; refreshEl(el); }
-        return;
-      }
-      // size frame to image aspect within grid
-      let gw = clamp(Math.round(ar>=1?5:3),1,COLS);
-      let gh = clamp(Math.round(gw/ar),1,ROWS);
-      if(gh<1) gh=1;
-      pushHistory();
-      const pos = centeredPos(gw,gh);
-      const el = mk('image', pos, {src:dataURL, fit:'contain', alt:file.name});
-      curSlide().elements.push(el);
-      state.selected=el.id;
-      renderStage(); renderInspector(); scheduleThumb();
-    };
-    img.src = dataURL;
-  };
+  reader.onload = ()=> addImageFromDataURL(reader.result, file.name);
   reader.readAsDataURL(file);
+}
+function addImageFromURL(url){
+  if(!url) return;
+  if(/^data:image\//i.test(url)){ addImageFromDataURL(url, 'image'); return; }
+  // Try to inline a remote image as a data URL so exports stay self-contained.
+  const probe = new Image();
+  probe.crossOrigin = 'anonymous';
+  probe.onload = ()=>{
+    try{
+      const c = document.createElement('canvas');
+      c.width = probe.naturalWidth; c.height = probe.naturalHeight;
+      c.getContext('2d').drawImage(probe, 0, 0);
+      placeImage(c.toDataURL('image/png'), probe.naturalWidth/probe.naturalHeight, 'image');
+    }catch(e){
+      // cross-origin without CORS headers — keep the original URL as the source
+      placeImage(url, probe.naturalWidth/probe.naturalHeight, 'image');
+      toast('Вставлено по ссылке (без встраивания)');
+    }
+  };
+  probe.onerror = ()=>{
+    // CORS-restricted load failed — retry plainly and reference the URL directly
+    const plain = new Image();
+    plain.onload = ()=>{ placeImage(url, plain.naturalWidth/plain.naturalHeight, 'image'); toast('Вставлено по ссылке (без встраивания)'); };
+    plain.onerror = ()=> toast('Не удалось загрузить изображение по ссылке');
+    plain.src = url;
+  };
+  probe.src = url;
 }
 
 $('#file-image').addEventListener('change', e=>{
@@ -1083,21 +1117,53 @@ $('#file-image').addEventListener('change', e=>{
   addImageFromFile(file);
 });
 
-/* drag an image file directly onto the canvas */
+/* drag media (file or image from a web page) directly onto the canvas */
 stageCol.addEventListener('dragover', e=>{
-  if(e.dataTransfer && Array.from(e.dataTransfer.types||[]).indexOf('Files')>-1){
+  const types = e.dataTransfer ? Array.from(e.dataTransfer.types||[]) : [];
+  if(types.indexOf('Files')>-1 || types.indexOf('text/uri-list')>-1 || types.indexOf('text/html')>-1){
     e.preventDefault(); e.dataTransfer.dropEffect='copy'; stageCol.classList.add('drop-active');
   }
 });
 stageCol.addEventListener('dragleave', e=>{ if(e.target===stageCol) stageCol.classList.remove('drop-active'); });
 stageCol.addEventListener('drop', e=>{
   stageCol.classList.remove('drop-active');
-  if(!(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length)) return;
-  const file = Array.prototype.slice.call(e.dataTransfer.files).find(f=>/^image\//.test(f.type));
-  if(!file) return;
-  e.preventDefault();
-  replaceImageFor = null;
-  addImageFromFile(file);
+  const dt = e.dataTransfer; if(!dt) return;
+  // 1) dropped image file(s)
+  const file = dt.files && dt.files.length
+    ? Array.prototype.slice.call(dt.files).find(f=>/^image\//.test(f.type)) : null;
+  if(file){ e.preventDefault(); replaceImageFor=null; addImageFromFile(file); return; }
+  // 2) image dragged from a web page (URL in uri-list / <img> in text/html / plain URL)
+  let url='';
+  try{ url = dt.getData('text/uri-list') || ''; }catch(_){}
+  if(!url){ try{
+    const html = dt.getData('text/html') || '';
+    const m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+    if(m) url = m[1];
+  }catch(_){} }
+  if(!url){ try{
+    const t = (dt.getData('text/plain')||'').trim();
+    if(/^(https?:|data:image\/)/i.test(t)) url = t;
+  }catch(_){} }
+  url = (url||'').split('\n')[0].trim();
+  if(url){ e.preventDefault(); replaceImageFor=null; addImageFromURL(url); }
+});
+
+/* paste media (image) from the system clipboard — screenshots, copied images, etc. */
+document.addEventListener('paste', e=>{
+  if(present.classList.contains('show')) return;
+  if(isTyping()) return;                       // let inputs/textarea paste text normally
+  const dt = e.clipboardData; if(!dt) return;
+  let imgFile = dt.files && dt.files.length
+    ? Array.prototype.slice.call(dt.files).find(f=>/^image\//.test(f.type)) : null;
+  if(!imgFile && dt.items){
+    for(const it of dt.items){
+      if(it.kind==='file' && /^image\//.test(it.type)){ imgFile = it.getAsFile(); break; }
+    }
+  }
+  if(imgFile){ e.preventDefault(); replaceImageFor=null; addImageFromFile(imgFile); toast('Изображение вставлено'); return; }
+  // otherwise: maybe a plain image URL on the clipboard
+  let txt=''; try{ txt = (dt.getData('text/plain')||'').trim(); }catch(_){}
+  if(/^(https?:\/\/|data:image\/)/i.test(txt)){ e.preventDefault(); replaceImageFor=null; addImageFromURL(txt.split('\n')[0].trim()); }
 });
 
 function deleteSelected(){
@@ -1270,56 +1336,88 @@ function isTyping(){
   if(!a) return false;
   return a.tagName==='INPUT' || a.tagName==='TEXTAREA' || a.isContentEditable;
 }
+/* Layout-independent character for physical letter/digit keys.
+   Fixes shortcuts under non-Latin layouts (e.g. Russian ЙЦУКЕН): the physical
+   key position is read from e.code instead of the localized e.key character. */
+function keyChar(e){
+  if(e.code && /^Key[A-Z]$/.test(e.code)) return e.code.charAt(3).toLowerCase();
+  if(e.code && /^Digit[0-9]$/.test(e.code)) return e.code.charAt(5);
+  return (e.key && e.key.length===1) ? e.key.toLowerCase() : '';
+}
 document.addEventListener('keydown', e=>{
+  const ch = keyChar(e);
   // Present mode
   if(present.classList.contains('show')){
     if(e.key==='Escape') closePresent();
     else if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'||e.key==='Enter'){ e.preventDefault(); presentNav(1); }
     else if(e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); presentNav(-1); }
-    else if(e.key==='f'||e.key==='F'){ $('#present-full').click(); }
+    else if(ch==='f'){ $('#present-full').click(); }
     return;
   }
   // Help overlay
-  if($('#help').classList.contains('show')){ if(e.key==='Escape'||e.key==='?') $('#help').classList.remove('show'); return; }
+  if($('#help').classList.contains('show')){
+    if(e.key==='Escape' || e.key==='?' || (e.shiftKey && e.code==='Slash')) $('#help').classList.remove('show');
+    return;
+  }
 
   const meta = e.metaKey||e.ctrlKey;
 
-  // Undo / redo (work everywhere except while typing text content where native applies)
-  if(meta && (e.key==='z'||e.key==='Z')){ if(!isTyping()){ e.preventDefault(); e.shiftKey?doRedo():doUndo(); } return; }
-  if(meta && (e.key==='y'||e.key==='Y')){ if(!isTyping()){ e.preventDefault(); doRedo(); } return; }
-  if(meta && (e.key==='s'||e.key==='S')){ e.preventDefault(); exportJSON(); return; }
+  // Undo / redo / save (work everywhere except where native editing applies)
+  if(meta && ch==='z'){ if(!isTyping()){ e.preventDefault(); e.shiftKey?doRedo():doUndo(); } return; }
+  if(meta && ch==='y'){ if(!isTyping()){ e.preventDefault(); doRedo(); } return; }
+  if(meta && ch==='s'){ e.preventDefault(); exportJSON(); return; }
 
   if(isTyping()){
     if(e.key==='Escape'){ document.activeElement.blur(); }
     return;
   }
 
-  // clipboard (in-memory, works across slides)
-  if(meta && (e.key==='c'||e.key==='C')){ if(state.selected){ e.preventDefault(); copyEl(); } return; }
-  if(meta && (e.key==='x'||e.key==='X')){ if(state.selected){ e.preventDefault(); cutEl(); } return; }
-  if(meta && (e.key==='v'||e.key==='V')){ if(clipboard){ e.preventDefault(); pasteEl(); } return; }
+  // Clipboard for elements (in-memory). Image paste is handled by the 'paste' event.
+  if(meta && ch==='c'){ if(state.selected){ e.preventDefault(); copyEl(); } return; }
+  if(meta && ch==='x'){ if(state.selected){ e.preventDefault(); cutEl(); } return; }
+  if(meta && ch==='v'){ if(clipboard){ e.preventDefault(); pasteEl(); } return; }
+  if(meta && ch==='d'){ e.preventDefault(); duplicateSelected(); return; }
 
-  switch(e.key){
-    case 'ArrowLeft': if(state.selected){ e.preventDefault(); moveSelected(-1,0);} else { e.preventDefault(); gotoSlide(state.current-1);} break;
-    case 'ArrowRight': if(state.selected){ e.preventDefault(); moveSelected(1,0);} else { e.preventDefault(); gotoSlide(state.current+1);} break;
-    case 'ArrowUp': if(state.selected){ e.preventDefault(); moveSelected(0,-1);} break;
-    case 'ArrowDown': if(state.selected){ e.preventDefault(); moveSelected(0,1);} break;
-    case 'PageUp': e.preventDefault(); gotoSlide(state.current-1); break;
-    case 'PageDown': e.preventDefault(); gotoSlide(state.current+1); break;
-    case 'Tab': e.preventDefault(); selectNext(e.shiftKey?-1:1); break;
-    case 'Enter': if(state.selected){ const el=findEl(state.selected); if(el&&(el.type==='text'||el.type==='heading'||el.type==='math')){ e.preventDefault(); focusEditbar(); } } break;
-    case 'Delete': case 'Backspace': if(state.selected){ e.preventDefault(); deleteSelected(); } break;
-    case 'Escape': if(state.selected){ state.selected=null; renderStage(); renderInspector(); } break;
-    case 'd': case 'D': if(meta){ e.preventDefault(); duplicateSelected(); } break;
-    case 't': case 'T': if(!meta){ addElement('text'); } break;
-    case 'h': case 'H': if(!meta){ addElement('heading'); } break;
-    case 'f': case 'F': if(!meta){ addElement('math'); } break;
-    case 'i': case 'I': if(!meta){ addElement('image'); } break;
-    case 'n': case 'N': if(!meta){ addSlide(); } break;
-    case 'p': case 'P': if(!meta){ openPresent(); } break;
-    case 'g': case 'G': if(!meta){ toggleGrid(); } break;
-    case '?': $('#help').classList.add('show'); break;
+  // Quick font-size (кегль) nudge with = / − when a text or formula is selected
+  if(!meta && (e.code==='Equal'||e.code==='Minus')){
+    const sel = state.selected ? findEl(state.selected) : null;
+    if(sel && isTextLike(sel)){
+      e.preventDefault();
+      const delta = e.code==='Minus' ? -2 : 2;
+      pushHistory();
+      sel.fontSize = clamp((sel.fontSize||30)+delta, 6, 200);
+      refreshEl(sel); renderInspector();
+      return;
+    }
   }
+
+  // Navigation / structural keys (layout-independent by nature)
+  switch(e.key){
+    case 'ArrowLeft': if(state.selected){ e.preventDefault(); moveSelected(-1,0);} else { e.preventDefault(); gotoSlide(state.current-1);} return;
+    case 'ArrowRight': if(state.selected){ e.preventDefault(); moveSelected(1,0);} else { e.preventDefault(); gotoSlide(state.current+1);} return;
+    case 'ArrowUp': if(state.selected){ e.preventDefault(); moveSelected(0,-1);} return;
+    case 'ArrowDown': if(state.selected){ e.preventDefault(); moveSelected(0,1);} return;
+    case 'PageUp': e.preventDefault(); gotoSlide(state.current-1); return;
+    case 'PageDown': e.preventDefault(); gotoSlide(state.current+1); return;
+    case 'Tab': e.preventDefault(); selectNext(e.shiftKey?-1:1); return;
+    case 'Enter': if(state.selected){ const el=findEl(state.selected); if(el&&(el.type==='text'||el.type==='heading'||el.type==='math')){ e.preventDefault(); focusEditbar(); } } return;
+    case 'Delete': case 'Backspace': if(state.selected){ e.preventDefault(); deleteSelected(); } return;
+    case 'Escape': if(state.selected){ state.selected=null; renderStage(); renderInspector(); } return;
+  }
+
+  // Letter shortcuts (layout-independent via physical key)
+  if(!meta){
+    switch(ch){
+      case 't': addElement('text'); break;
+      case 'h': addElement('heading'); break;
+      case 'f': addElement('math'); break;
+      case 'i': addElement('image'); break;
+      case 'n': addSlide(); break;
+      case 'p': openPresent(); break;
+      case 'g': toggleGrid(); break;
+    }
+  }
+  if(e.key==='?' || (e.shiftKey && e.code==='Slash')) $('#help').classList.add('show');
 });
 
 function toggleGrid(){ state.showGrid=!state.showGrid; gridOverlay.classList.toggle('show',state.showGrid); $('#btn-grid').classList.toggle('on',state.showGrid); }
@@ -1453,7 +1551,7 @@ function buildExportHTML(){
 'function show(n){i=Math.max(0,Math.min(slides.length-1,n));slides.forEach(function(s,k){s.classList.toggle("active",k===i);});var c=document.getElementById("ctr");if(c)c.textContent=(i+1)+" / "+slides.length;}'+
 'function nav(d){show(i+d);}'+
 'addEventListener("resize",fit);'+
-'addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"||e.key==="Enter"){e.preventDefault();nav(1);}else if(e.key==="ArrowLeft"||e.key==="PageUp"){e.preventDefault();nav(-1);}else if(e.key==="Home"){show(0);}else if(e.key==="End"){show(slides.length-1);}else if(e.key==="f"||e.key==="F"){toggleFull();}});'+
+'addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"||e.key==="Enter"){e.preventDefault();nav(1);}else if(e.key==="ArrowLeft"||e.key==="PageUp"){e.preventDefault();nav(-1);}else if(e.key==="Home"){show(0);}else if(e.key==="End"){show(slides.length-1);}else if(e.key==="f"||e.key==="F"||e.code==="KeyF"){toggleFull();}});'+
 'deck.addEventListener("click",function(){nav(1);});'+
 'function toggleFull(){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}'+
 'document.getElementById("prev").onclick=function(e){e.stopPropagation();nav(-1);};'+

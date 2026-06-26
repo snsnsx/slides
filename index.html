@@ -136,7 +136,7 @@
     width:100%; height:100%; background:#fff; padding:12px; border:1px solid #e7e7e4;
     box-shadow:0 10px 30px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.10);
   }
-  .img-frame img{display:block; width:100%; height:100%}
+  .img-frame img{display:block; width:100%; height:100%; -webkit-user-drag:none; user-select:none; pointer-events:none}
 
   /* editor interactivity */
   .editing .el{cursor:default}
@@ -225,6 +225,53 @@
   @keyframes spin{to{transform:rotate(360deg)}}
 
   svg{display:block}
+
+  /* ---------- Keyboard focus ---------- */
+  :focus{outline:none}
+  :focus-visible{outline:2px solid var(--ink); outline-offset:2px; border-radius:var(--radius)}
+  .thumb:focus-visible{outline-offset:3px}
+  .present-hud .pbtn:focus-visible{outline-color:#fff}
+
+  /* ---------- Save status ---------- */
+  .save-status{display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 6px; color:var(--muted); font-size:11px; white-space:nowrap; user-select:none}
+  .save-status i{width:6px; height:6px; border-radius:50%; background:var(--muted); flex:none}
+  .save-status.saved i{background:#3a9d5d}
+  .save-status.saving i{background:#c79a3a; animation:pulse 1s ease-in-out infinite}
+  .save-status.off{color:#b0455e}
+  .save-status.off i{background:#b0455e}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+  /* ---------- Slide thumbnail actions + reorder ---------- */
+  .thumb-wrap{cursor:grab; position:relative}
+  .thumb-wrap.dragging{opacity:.4}
+  .thumb-wrap.drop-before::before, .thumb-wrap.drop-after::after{content:""; position:absolute; left:22px; right:0; height:2px; background:var(--ink); border-radius:2px}
+  .thumb-wrap.drop-before::before{top:-5px}
+  .thumb-wrap.drop-after::after{bottom:-5px}
+  .thumb-actions{position:absolute; top:3px; right:3px; display:none; gap:3px; z-index:4}
+  .thumb-wrap:hover .thumb-actions{display:flex}
+  .ta-btn{width:18px; height:18px; border:none; border-radius:3px; background:rgba(255,255,255,.9); color:var(--ink-2); display:flex; align-items:center; justify-content:center; padding:0; box-shadow:0 1px 3px rgba(0,0,0,.16)}
+  .ta-btn svg{width:11px; height:11px}
+  .ta-btn:hover{background:var(--ink); color:#fff}
+  .ta-del:hover{background:#b03636; color:#fff}
+
+  /* ---------- Empty slide hint ---------- */
+  .stage-empty{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; color:var(--muted); pointer-events:none; text-align:center; font-size:30px; letter-spacing:.01em}
+  .stage-empty small{font-size:19px; color:var(--line-2); max-width:680px; line-height:1.55}
+  .stage-empty b{color:var(--ink-2); font-weight:600}
+
+  /* ---------- Drag image onto stage ---------- */
+  .stage-col.drop-active::after{content:"Отпустите, чтобы добавить изображение"; position:absolute; inset:16px; border:2px dashed var(--ink); border-radius:6px; display:flex; align-items:center; justify-content:center; color:var(--ink); background:rgba(255,255,255,.62); font-size:14px; letter-spacing:.01em; pointer-events:none; z-index:30}
+
+  /* ---------- Present hint + progress ---------- */
+  .present-hint{position:fixed; top:22px; left:50%; transform:translateX(-50%) translateY(-8px); background:rgba(255,255,255,.1); color:rgba(255,255,255,.82); border:1px solid rgba(255,255,255,.16); padding:8px 15px; border-radius:999px; font-size:12px; letter-spacing:.02em; opacity:0; pointer-events:none; transition:opacity .3s ease, transform .3s ease; z-index:210}
+  .present-hint.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  .present-progress{position:fixed; left:0; right:0; bottom:0; height:2px; background:rgba(255,255,255,.1); z-index:210}
+  .present-progress i{display:block; height:100%; width:0; background:rgba(255,255,255,.6); transition:width .25s ease}
+
+  /* ---------- Responsive narrowing ---------- */
+  @media (max-width:1180px){ .body{grid-template-columns:160px 1fr 220px} }
+  @media (max-width:1024px){ .body{grid-template-columns:148px 1fr 206px} }
+
   @media (prefers-reduced-motion: reduce){*{transition:none !important; animation:none !important}}
 </style>
 </head>
@@ -241,6 +288,7 @@
     <div class="spacer"></div>
     <button class="tool icon-only" id="btn-grid" title="Сетка — G"><span class="ico" data-i="grid"></span></button>
     <button class="tool ghost" id="btn-present" title="Показ — P"><span class="ico" data-i="play"></span>Показ</button>
+    <div class="save-status" id="save-status"></div>
     <div class="menu" id="export-menu">
       <button class="tool solid" id="btn-export"><span class="ico" data-i="download"></span>Экспорт<span class="ico" data-i="chev"></span></button>
       <div class="menu-pop">
@@ -249,6 +297,8 @@
         <div class="menu-div"></div>
         <button class="menu-item" data-exp="save"><span class="ico" data-i="save"></span>Сохранить проект <span class="k">.json</span></button>
         <button class="menu-item" data-exp="open"><span class="ico" data-i="open"></span>Открыть проект <span class="k">.json</span></button>
+        <div class="menu-div"></div>
+        <button class="menu-item" data-exp="new"><span class="ico" data-i="plus"></span>Новый документ <span class="k">с нуля</span></button>
       </div>
     </div>
     <div class="sep"></div>
@@ -277,6 +327,8 @@
 <!-- Present overlay -->
 <div class="present" id="present">
   <div id="present-stage"></div>
+  <div class="present-hint" id="present-hint">← → листать&nbsp;·&nbsp;F полный экран&nbsp;·&nbsp;Esc выход</div>
+  <div class="present-progress" id="present-progress"><i></i></div>
   <div class="present-hud">
     <button class="pbtn" id="present-prev" title="Назад">‹</button>
     <span id="present-counter">1 / 1</span>
@@ -309,6 +361,8 @@
         <div class="kr"><span>След. / пред. элемент</span><span><kbd>Tab</kbd> <kbd>⇧Tab</kbd></span></div>
         <div class="kr"><span>Редактировать текст</span><kbd>Enter</kbd></div>
         <div class="kr"><span>Дублировать</span><kbd>⌘/Ctrl D</kbd></div>
+        <div class="kr"><span>Копировать / вставить</span><span><kbd>⌘/Ctrl C</kbd> <kbd>V</kbd></span></div>
+        <div class="kr"><span>Вырезать</span><kbd>⌘/Ctrl X</kbd></div>
         <div class="kr"><span>Удалить</span><span><kbd>Del</kbd> <kbd>⌫</kbd></span></div>
         <div class="kr"><span>Снять выделение</span><kbd>Esc</kbd></div>
 
@@ -317,6 +371,11 @@
         <div class="kr"><span>Показать сетку</span><kbd>G</kbd></div>
         <div class="kr"><span>Сохранить проект</span><kbd>⌘/Ctrl S</kbd></div>
         <div class="kr"><span>Эта справка</span><kbd>?</kbd></div>
+
+        <h3>Мышь</h3>
+        <div class="kr"><span>Переупорядочить слайды</span><span style="color:var(--muted)">перетащить</span></div>
+        <div class="kr"><span>Дублировать / удалить слайд</span><span style="color:var(--muted)">навести на слайд</span></div>
+        <div class="kr"><span>Добавить изображение</span><span style="color:var(--muted)">перетащить файл</span></div>
       </div>
     </div>
   </div>
@@ -553,11 +612,17 @@ function fitStage(){
 function renderStage(){
   const scale = fitStage();
   stage.querySelectorAll('.el').forEach(n=>n.remove());
+  const exHint = stage.querySelector('.stage-empty'); if(exHint) exHint.remove();
   const s = curSlide();
   s.elements.forEach(el=>{
     const node = buildElement(el,'edit');
     stage.appendChild(node);
   });
+  if(!s.elements.length){
+    const hint = document.createElement('div'); hint.className='stage-empty';
+    hint.innerHTML = 'Пустой слайд<small>Добавьте элемент: <b>H</b> заголовок · <b>T</b> текст · <b>F</b> формула · <b>I</b> изображение.<br>Изображение можно просто перетащить на холст.</small>';
+    stage.appendChild(hint);
+  }
   gridOverlay.classList.toggle('show', state.showGrid);
   bindStageEvents();
 }
@@ -870,9 +935,8 @@ function addElement(type){
   renderStage(); renderInspector(); scheduleThumb();
 }
 
-$('#file-image').addEventListener('change', e=>{
-  const file = e.target.files[0]; e.target.value='';
-  if(!file) return;
+function addImageFromFile(file){
+  if(!file || !/^image\//.test(file.type)){ if(file) toast('Это не изображение'); return; }
   const reader = new FileReader();
   reader.onload = ()=>{
     const dataURL = reader.result;
@@ -898,6 +962,28 @@ $('#file-image').addEventListener('change', e=>{
     img.src = dataURL;
   };
   reader.readAsDataURL(file);
+}
+
+$('#file-image').addEventListener('change', e=>{
+  const file = e.target.files[0]; e.target.value='';
+  addImageFromFile(file);
+});
+
+/* drag an image file directly onto the canvas */
+stageCol.addEventListener('dragover', e=>{
+  if(e.dataTransfer && Array.from(e.dataTransfer.types||[]).indexOf('Files')>-1){
+    e.preventDefault(); e.dataTransfer.dropEffect='copy'; stageCol.classList.add('drop-active');
+  }
+});
+stageCol.addEventListener('dragleave', e=>{ if(e.target===stageCol) stageCol.classList.remove('drop-active'); });
+stageCol.addEventListener('drop', e=>{
+  stageCol.classList.remove('drop-active');
+  if(!(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length)) return;
+  const file = Array.prototype.slice.call(e.dataTransfer.files).find(f=>/^image\//.test(f.type));
+  if(!file) return;
+  e.preventDefault();
+  replaceImageFor = null;
+  addImageFromFile(file);
 });
 
 function deleteSelected(){
@@ -932,35 +1018,75 @@ function selectNext(dir){
    Slides rail + thumbnails
    ============================================================ */
 const railList = $('#rail-list');
+let railDrag = null;
+function clearDropHints(){ $$('.thumb-wrap', railList).forEach(w=>w.classList.remove('drop-before','drop-after')); }
+function reorderSlides(from, to){
+  if(from===to || from===to-1){ clearDropHints(); return; }
+  const curId = state.slides[state.current].id;
+  pushHistory();
+  const [m] = state.slides.splice(from,1);
+  if(to>from) to--;
+  state.slides.splice(to,0,m);
+  state.current = state.slides.findIndex(x=>x.id===curId);
+  state.selected = null;
+  renderAll();
+  toast('Порядок слайдов изменён');
+}
 function renderRail(){
   railList.innerHTML='';
   state.slides.forEach((s,i)=>{
-    const wrap=document.createElement('div'); wrap.className='thumb-wrap';
+    const wrap=document.createElement('div'); wrap.className='thumb-wrap'; wrap.dataset.i=i; wrap.draggable=true;
     const no=document.createElement('div'); no.className='thumb-no'; no.textContent=i+1;
     const t=document.createElement('div'); t.className='thumb'+(i===state.current?' active':'');
     const mini=document.createElement('div'); mini.className='mini';
     s.elements.forEach(el=> mini.appendChild(buildElement(el,'view')));
     t.appendChild(mini);
-    const del=document.createElement('button'); del.className='del'; del.innerHTML=ICONS.trash;
-    del.title='Удалить слайд';
+    const acts=document.createElement('div'); acts.className='thumb-actions';
+    const dup=document.createElement('button'); dup.className='ta-btn'; dup.innerHTML=ICONS.copy; dup.title='Дублировать слайд'; dup.draggable=false;
+    dup.addEventListener('click',ev=>{ ev.stopPropagation(); duplicateSlide(i); });
+    const del=document.createElement('button'); del.className='ta-btn ta-del'; del.innerHTML=ICONS.trash; del.title='Удалить слайд'; del.draggable=false;
     del.addEventListener('click',ev=>{ ev.stopPropagation(); deleteSlide(i); });
-    t.appendChild(del);
+    acts.appendChild(dup); acts.appendChild(del);
+    t.appendChild(acts);
     t.addEventListener('click',()=> gotoSlide(i));
     // scale mini to thumb
     requestAnimationFrame(()=>{ const sc=t.clientWidth/REF_W; mini.style.transform='scale('+sc+')'; });
+    // drag to reorder
+    wrap.addEventListener('dragstart',ev=>{ railDrag=i; wrap.classList.add('dragging'); try{ ev.dataTransfer.effectAllowed='move'; ev.dataTransfer.setData('text/plain',String(i)); }catch(e){} });
+    wrap.addEventListener('dragend',()=>{ railDrag=null; clearDropHints(); $$('.thumb-wrap',railList).forEach(w=>w.classList.remove('dragging')); });
+    wrap.addEventListener('dragover',ev=>{ if(railDrag===null) return; ev.preventDefault(); const r=wrap.getBoundingClientRect(); const after=(ev.clientY-r.top)>r.height/2; clearDropHints(); wrap.classList.add(after?'drop-after':'drop-before'); });
+    wrap.addEventListener('drop',ev=>{ if(railDrag===null) return; ev.preventDefault(); const r=wrap.getBoundingClientRect(); const after=(ev.clientY-r.top)>r.height/2; reorderSlides(railDrag, i+(after?1:0)); });
     wrap.appendChild(no); wrap.appendChild(t);
     railList.appendChild(wrap);
   });
   $('#slide-count').textContent = state.slides.length;
 }
 let thumbTimer=null;
-function scheduleThumb(){ clearTimeout(thumbTimer); thumbTimer=setTimeout(renderRail, 220); }
+function scheduleThumb(){ clearTimeout(thumbTimer); thumbTimer=setTimeout(renderRail, 220); scheduleSave(); }
 
 function addSlide(){
   pushHistory();
   state.slides.splice(state.current+1,0,newSlide());
   state.current++; state.selected=null;
   renderAll();
+}
+function duplicateSlide(i){
+  pushHistory();
+  const src = state.slides[i];
+  const copy = JSON.parse(JSON.stringify(src));
+  copy.id = 's'+(uid++);
+  copy.elements.forEach(e=> e.id = nid());
+  state.slides.splice(i+1,0,copy);
+  state.current = i+1; state.selected=null;
+  renderAll();
+  toast('Слайд дублирован');
+}
+function newDocument(){
+  pushHistory();
+  state.slides = [ newSlide() ];
+  state.current = 0; state.selected = null;
+  renderAll();
+  toast('Новый документ · ⌘/Ctrl Z вернёт прежний');
 }
 function deleteSlide(i){
   if(state.slides.length<=1){ toast('Нельзя удалить единственный слайд'); return; }
@@ -974,12 +1100,13 @@ function gotoSlide(i){
   if(i===state.current) return;
   state.current=i; state.selected=null;
   renderStage(); renderInspector(); renderRail();
+  scheduleSave();
 }
 
 /* ============================================================
    Render all
    ============================================================ */
-function renderAll(){ renderStage(); renderInspector(); renderRail(); }
+function renderAll(){ renderStage(); renderInspector(); renderRail(); scheduleSave(); }
 
 /* ============================================================
    Present mode
@@ -996,10 +1123,14 @@ function renderPresent(){
   const s=state.slides[presentIdx];
   s.elements.forEach(el=> presentStage.appendChild(buildElement(el,'view')));
   $('#present-counter').textContent=(presentIdx+1)+' / '+state.slides.length;
+  const bar=$('#present-progress i');
+  if(bar){ bar.style.width = (state.slides.length>1 ? (presentIdx/(state.slides.length-1))*100 : 100)+'%'; }
   fitPresent();
 }
 function openPresent(){
   presentIdx=state.current; present.classList.add('show'); renderPresent();
+  const h=$('#present-hint');
+  if(h){ h.classList.add('show'); clearTimeout(present._hintT); present._hintT=setTimeout(()=>h.classList.remove('show'), 2800); }
 }
 function closePresent(){
   present.classList.remove('show');
@@ -1045,6 +1176,11 @@ document.addEventListener('keydown', e=>{
     if(e.key==='Escape'){ document.activeElement.blur(); }
     return;
   }
+
+  // clipboard (in-memory, works across slides)
+  if(meta && (e.key==='c'||e.key==='C')){ if(state.selected){ e.preventDefault(); copyEl(); } return; }
+  if(meta && (e.key==='x'||e.key==='X')){ if(state.selected){ e.preventDefault(); cutEl(); } return; }
+  if(meta && (e.key==='v'||e.key==='V')){ if(clipboard){ e.preventDefault(); pasteEl(); } return; }
 
   switch(e.key){
     case 'ArrowLeft': if(state.selected){ e.preventDefault(); moveSelected(-1,0);} else { e.preventDefault(); gotoSlide(state.current-1);} break;
@@ -1093,11 +1229,12 @@ $$('[data-exp]',expMenu).forEach(b=> b.addEventListener('click',()=>{
   else if(a==='pptx') exportPPTX();
   else if(a==='save') exportJSON();
   else if(a==='open') $('#file-open').click();
+  else if(a==='new') newDocument();
 }));
 $('#file-open').addEventListener('change', e=>{
   const f=e.target.files[0]; e.target.value=''; if(!f) return;
   const r=new FileReader();
-  r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d&&d.slides){ pushHistory(); state.slides=d.slides; state.current=0; state.selected=null; mathCache.clear(); renderAll(); toast('Проект загружен'); } else toast('Неверный файл'); }catch(err){ toast('Не удалось открыть файл'); } };
+  r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d&&d.slides){ pushHistory(); state.slides=d.slides; state.current=0; state.selected=null; reseedUid(); mathCache.clear(); renderAll(); toast('Проект загружен'); } else toast('Неверный файл'); }catch(err){ toast('Не удалось открыть файл'); } };
   r.readAsText(f);
 });
 
@@ -1279,12 +1416,78 @@ async function exportPPTX(){
 }
 
 /* ============================================================
+   Autosave (localStorage) + in-memory clipboard
+   ============================================================ */
+const SAVE_KEY='slides.autosave.v1';
+let storageOK=true, lastSaved='', saveTimer=null;
+(function probeStorage(){ try{ const k='__slides_probe__'; localStorage.setItem(k,'1'); localStorage.removeItem(k); }catch(e){ storageOK=false; } })();
+
+function setSaveStatus(kind){
+  const n=$('#save-status'); if(!n) return;
+  if(!storageOK){ n.className='save-status off'; n.innerHTML='<i></i>не сохраняется'; n.title='Локальное сохранение недоступно — экспортируйте проект вручную (.json)'; return; }
+  if(kind==='saving'){ n.className='save-status saving'; n.innerHTML='<i></i>Сохранение…'; n.title='Черновик сохраняется в этом браузере'; }
+  else { n.className='save-status saved'; n.innerHTML='<i></i>Сохранено'; n.title='Черновик автоматически сохранён в этом браузере'; }
+}
+function persist(){
+  if(!storageOK) return;
+  try{
+    const data=JSON.stringify({version:1, slides:state.slides, current:state.current});
+    if(data!==lastSaved){ localStorage.setItem(SAVE_KEY, data); lastSaved=data; }
+    setSaveStatus('saved');
+  }catch(e){ storageOK=false; setSaveStatus('off'); }
+}
+function scheduleSave(){ if(!storageOK) return; setSaveStatus('saving'); clearTimeout(saveTimer); saveTimer=setTimeout(persist, 600); }
+function restore(){
+  if(!storageOK) return false;
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const d=JSON.parse(raw);
+    if(d && Array.isArray(d.slides) && d.slides.length){
+      state.slides=d.slides;
+      state.current=clamp(d.current||0, 0, d.slides.length-1);
+      lastSaved=raw;
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+function reseedUid(){
+  let max=0;
+  state.slides.forEach(s=>{
+    const m=/\d+/.exec(s.id||''); if(m) max=Math.max(max, +m[0]);
+    (s.elements||[]).forEach(e=>{ const mm=/\d+/.exec(e.id||''); if(mm) max=Math.max(max, +mm[0]); });
+  });
+  uid = Math.max(uid, max+1);
+}
+
+let clipboard=null;
+function copyEl(){ const el=findEl(state.selected); if(!el) return; clipboard=JSON.stringify(el); toast('Скопировано'); }
+function cutEl(){ const el=findEl(state.selected); if(!el) return; clipboard=JSON.stringify(el); deleteSelected(); toast('Вырезано'); }
+function pasteEl(){
+  if(!clipboard) return;
+  let data; try{ data=JSON.parse(clipboard); }catch(e){ return; }
+  pushHistory();
+  data.id=nid();
+  data.gx=clamp((data.gx||0)+1, 0, COLS-(data.gw||1));
+  data.gy=clamp((data.gy||0)+1, 0, ROWS-(data.gh||1));
+  curSlide().elements.push(data);
+  state.selected=data.id;
+  renderStage(); renderInspector(); scheduleThumb();
+  toast('Вставлено');
+}
+
+/* ============================================================
    Boot
    ============================================================ */
 function boot(){
   paintIcons(document);
   $('#btn-grid').classList.toggle('on', state.showGrid);
+  const restored = restore();
+  reseedUid();
   renderAll();
+  setSaveStatus(storageOK ? 'saved' : 'off');
+  if(restored) toast('Восстановлен черновик');
   // re-render math once KaTeX has surely loaded (initial paint may precede it)
   let tries=0;
   const iv=setInterval(()=>{
@@ -1293,6 +1496,7 @@ function boot(){
     if(tries>40) clearInterval(iv);
   },120);
   window.addEventListener('resize', ()=>{ if(!present.classList.contains('show')) renderStage(); });
+  window.addEventListener('beforeunload', ()=>{ try{ persist(); }catch(e){} });
 }
 boot();
 </script>

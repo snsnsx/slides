@@ -1,0 +1,1806 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Slides v0.5</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<style>
+  :root{
+    --bg:#e9e9e7;
+    --panel:#ffffff;
+    --panel-2:#fafafa;
+    --ink:#1a1a1a;
+    --ink-2:#4a4a4a;
+    --muted:#8a8a87;
+    --line:#e2e2df;
+    --line-2:#d4d4d0;
+    --slide:#ffffff;
+    --grid:rgba(26,26,26,.07);
+    --grid-strong:rgba(26,26,26,.16);
+    --sel:#1a1a1a;
+    --hover:#f2f2f0;
+    --active:#1a1a1a;
+    --active-ink:#ffffff;
+    --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Times New Roman", serif;
+    --radius:3px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:var(--ui); color:var(--ink); background:var(--bg);
+    font-size:13px; line-height:1.45; overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit; font-size:inherit; color:inherit; cursor:pointer}
+  ::selection{background:#1a1a1a; color:#fff}
+
+  /* ---------- App shell ---------- */
+  .app{display:grid; grid-template-rows:auto 1fr auto; height:100vh}
+  .topbar{
+    display:flex; align-items:center; gap:14px; padding:0 14px; height:46px;
+    background:var(--panel); border-bottom:1px solid var(--line); user-select:none;
+  }
+  .brand{display:flex; align-items:center; gap:9px; font-weight:600; letter-spacing:.02em}
+  .brand .mark{width:14px; height:14px; background:var(--ink); border-radius:7px}
+  .brand small{font-weight:400; color:var(--muted); letter-spacing:.04em; text-transform:uppercase; font-size:10px}
+  .sep{width:1px; height:22px; background:var(--line); margin:0 2px}
+  .spacer{flex:1}
+
+  .tool{
+    display:inline-flex; align-items:center; gap:7px; height:30px; padding:0 11px;
+    background:transparent; border:1px solid transparent; border-radius:var(--radius);
+    color:var(--ink-2); white-space:nowrap;
+  }
+  .tool:hover{background:var(--hover); color:var(--ink)}
+  .tool:active{transform:translateY(.5px)}
+  .tool .ico{width:15px; height:15px; display:inline-flex}
+  .tool.ghost{border-color:var(--line-2)}
+  .tool.solid{background:var(--ink); color:#fff; border-color:var(--ink)}
+  .tool.solid:hover{background:#000}
+  .tool.icon-only{padding:0; width:30px; justify-content:center}
+  .tool.on{background:var(--ink); color:#fff; border-color:var(--ink)}
+  .tool.on:hover{background:#000; color:#fff}
+
+  .menu{position:relative}
+  .menu-pop{
+    position:absolute; top:36px; right:0; background:var(--panel); border:1px solid var(--line-2);
+    border-radius:var(--radius); box-shadow:0 10px 30px rgba(0,0,0,.12); min-width:210px; padding:6px;
+    z-index:60; display:none;
+  }
+  .menu.open .menu-pop{display:block}
+  .menu-item{display:flex; align-items:center; gap:9px; width:100%; padding:8px 9px; background:none; border:none; border-radius:2px; text-align:left}
+  .menu-item:hover{background:var(--hover)}
+  .menu-item .k{margin-left:auto; color:var(--muted); font-size:11px}
+  .menu-div{height:1px; background:var(--line); margin:5px 2px}
+
+  /* ---------- Body columns ---------- */
+  .body{display:grid; grid-template-columns:188px 1fr 248px; min-height:0}
+  .col{min-height:0; overflow:hidden}
+
+  /* Slides rail */
+  .rail{background:var(--panel-2); border-right:1px solid var(--line); display:flex; flex-direction:column}
+  .rail-head{display:flex; align-items:center; justify-content:space-between; padding:11px 12px 9px; color:var(--muted); font-size:10px; letter-spacing:.08em; text-transform:uppercase}
+  .rail-list{flex:1; overflow-y:auto; padding:4px 10px 12px; display:flex; flex-direction:column; gap:8px}
+  .thumb-wrap{display:flex; gap:8px; align-items:flex-start}
+  .thumb-no{width:14px; text-align:right; color:var(--muted); font-size:10px; padding-top:3px; flex:none; font-variant-numeric:tabular-nums}
+  .thumb{
+    position:relative; flex:1; aspect-ratio:16/9; background:var(--slide);
+    border:1px solid var(--line-2); border-radius:2px; overflow:hidden; cursor:pointer;
+    box-shadow:0 1px 2px rgba(0,0,0,.04);
+  }
+  .thumb.active{border-color:var(--ink); box-shadow:0 0 0 1.5px var(--ink)}
+  .thumb .mini{position:absolute; left:0; top:0; width:1280px; height:720px; transform-origin:top left}
+  .thumb .del{
+    position:absolute; top:3px; right:3px; width:18px; height:18px; border:none; border-radius:3px;
+    background:rgba(255,255,255,.85); color:var(--ink-2); display:none; align-items:center; justify-content:center;
+    line-height:1; padding:0;
+  }
+  .thumb-wrap:hover .del{display:flex}
+  .thumb .del:hover{background:#1a1a1a; color:#fff}
+  .rail-add{margin:0 10px 12px; height:34px; border:1px dashed var(--line-2); background:transparent; border-radius:var(--radius); color:var(--ink-2); display:flex; align-items:center; justify-content:center; gap:7px}
+  .rail-add:hover{border-color:var(--ink); color:var(--ink); background:var(--panel)}
+
+  /* Stage */
+  .stage-col{background:var(--bg); position:relative; display:flex; align-items:center; justify-content:center; padding:26px}
+  .stage-frame{position:relative}
+  #stage{
+    position:relative; width:1280px; height:720px; background:var(--slide);
+    transform-origin:center center; box-shadow:0 4px 28px rgba(0,0,0,.12), 0 0 0 1px var(--line-2);
+  }
+  .grid-overlay{position:absolute; pointer-events:none; opacity:0; transition:opacity .12s ease}
+  .grid-overlay.show{opacity:1}
+  .grid-overlay .lines{
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(to right, var(--grid) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+  }
+  .grid-overlay.dragging .lines{
+    background-image:
+      linear-gradient(to right, var(--grid-strong) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-strong) 1px, transparent 1px);
+  }
+  .grid-overlay .bounds{position:absolute; inset:0; outline:1px solid var(--grid-strong)}
+
+  /* Elements */
+  .el{position:absolute; overflow:visible}
+  .el .el-content{width:100%; height:100%; display:flex; flex-direction:column; outline:none; word-break:break-word; overflow:hidden}
+  .el.text .el-content, .el.heading .el-content{padding:2px 4px}
+  .el .line{width:100%; white-space:pre-wrap}
+  .el.math .el-content{flex-direction:row; align-items:center}
+  .el.math .katex-host{width:100%; overflow:hidden}
+  .el.math .katex-display{margin:0}
+  .el.image{overflow:visible}
+  .img-frame{
+    width:100%; height:100%; background:#fff; padding:12px; border:1px solid #e7e7e4;
+    box-shadow:0 10px 30px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.10);
+  }
+  .img-frame img{display:block; width:100%; height:100%; -webkit-user-drag:none; user-select:none; pointer-events:none}
+
+  /* editor interactivity */
+  .editing .el{cursor:default}
+  .el.selectable{cursor:move}
+  .el.selected{outline:1.5px solid var(--sel); outline-offset:0}
+  .handle{position:absolute; width:11px; height:11px; background:#fff; border:1.5px solid var(--sel); border-radius:2px; z-index:6; box-shadow:0 1px 3px rgba(0,0,0,.22)}
+  /* generous invisible grab area so handles are easy to hit (bigger than they look) */
+  .handle::after{content:""; position:absolute; left:50%; top:50%; width:26px; height:26px; transform:translate(-50%,-50%)}
+  .handle.h-n::after,.handle.h-s::after{width:44px; height:24px}
+  .handle.h-e::after,.handle.h-w::after{width:24px; height:44px}
+  .handle:hover{background:var(--sel); transform-origin:center; box-shadow:0 0 0 3px rgba(26,26,26,.14), 0 1px 3px rgba(0,0,0,.22)}
+  .handle.h-nw{left:-5.5px; top:-5.5px; cursor:nwse-resize}
+  .handle.h-ne{right:-5.5px; top:-5.5px; cursor:nesw-resize}
+  .handle.h-sw{left:-5.5px; bottom:-5.5px; cursor:nesw-resize}
+  .handle.h-se{right:-5.5px; bottom:-5.5px; cursor:nwse-resize}
+  .handle.h-n{left:50%; top:-5.5px; transform:translateX(-50%); cursor:ns-resize}
+  .handle.h-s{left:50%; bottom:-5.5px; transform:translateX(-50%); cursor:ns-resize}
+  .handle.h-w{left:-5.5px; top:50%; transform:translateY(-50%); cursor:ew-resize}
+  .handle.h-e{right:-5.5px; top:50%; transform:translateY(-50%); cursor:ew-resize}
+  /* keep midpoint handles centred on hover (don't let the hover rule drop the translate) */
+  .handle.h-n:hover,.handle.h-s:hover{transform:translateX(-50%)}
+  .handle.h-w:hover,.handle.h-e:hover{transform:translateY(-50%)}
+
+  /* ---------- Inspector ---------- */
+  .insp{background:var(--panel); border-left:1px solid var(--line); display:flex; flex-direction:column; overflow-y:auto}
+  .insp-empty{padding:30px 20px; color:var(--muted); text-align:center; margin-top:8px}
+  .insp-empty .ico{display:block; margin:0 auto 12px; width:26px; height:26px; opacity:.4}
+  .insp-empty kbd{font-family:var(--ui)}
+  .group{padding:14px 16px; border-bottom:1px solid var(--line)}
+  .group:last-child{border-bottom:none}
+  .group-title{font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:0 0 11px; display:flex; align-items:center; justify-content:space-between}
+  .group-title .badge{color:var(--ink); letter-spacing:.02em; text-transform:none; font-size:11px}
+  .row{display:flex; align-items:center; gap:8px; margin-bottom:9px}
+  .row:last-child{margin-bottom:0}
+  .row .lbl{width:48px; color:var(--muted); flex:none; font-size:11px}
+  .seg{display:inline-flex; border:1px solid var(--line-2); border-radius:var(--radius); overflow:hidden}
+  .seg button{padding:6px 0; width:34px; background:var(--panel); border:none; border-right:1px solid var(--line-2); color:var(--ink-2); display:flex; align-items:center; justify-content:center}
+  .seg button:last-child{border-right:none}
+  .seg button:hover{background:var(--hover)}
+  .seg button.on{background:var(--ink); color:#fff}
+  .seg.grow{display:flex; flex:1}
+  .seg.grow button{flex:1; width:auto}
+  .stepper{display:inline-flex; align-items:center; border:1px solid var(--line-2); border-radius:var(--radius); overflow:hidden; flex:1}
+  .stepper button{width:26px; height:30px; background:var(--panel); border:none; color:var(--ink-2)}
+  .stepper button:hover{background:var(--hover)}
+  .stepper input{flex:1; width:100%; border:none; text-align:center; padding:6px 0; font-variant-numeric:tabular-nums; outline:none; background:transparent; -moz-appearance:textfield}
+  .stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none}
+  .swatches{display:flex; gap:6px}
+  .sw{width:24px; height:24px; border-radius:50%; border:1px solid var(--line-2); cursor:pointer; padding:0}
+  .sw.on{box-shadow:0 0 0 2px var(--panel), 0 0 0 3.5px var(--ink)}
+  textarea.tex{
+    width:100%; min-height:84px; resize:vertical; border:1px solid var(--line-2); border-radius:var(--radius);
+    padding:9px 10px; font-family:ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size:12px; line-height:1.5;
+    outline:none; background:var(--panel-2); color:var(--ink);
+  }
+  textarea.tex:focus{border-color:var(--ink); background:var(--panel)}
+  .tex-hint{margin-top:7px; color:var(--muted); font-size:11px}
+  .tex-hint code{background:var(--panel-2); padding:1px 4px; border-radius:3px; border:1px solid var(--line)}
+  .full-btn{width:100%; height:32px; border:1px solid var(--line-2); border-radius:var(--radius); background:var(--panel); color:var(--ink-2); display:flex; align-items:center; justify-content:center; gap:7px}
+  .full-btn:hover{background:var(--hover); color:var(--ink)}
+  .danger:hover{background:#1a1a1a; color:#fff; border-color:#1a1a1a}
+  .pos-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .pos-grid .cell{display:flex; align-items:center; gap:6px}
+  .pos-grid .cell .lbl{width:14px}
+
+  /* ---------- Present ---------- */
+  .present{position:fixed; inset:0; background:#0e0e0e; z-index:200; display:none; align-items:center; justify-content:center}
+  .present.show{display:flex}
+  #present-stage{position:relative; width:1280px; height:720px; background:#fff; transform-origin:center center; box-shadow:0 0 60px rgba(0,0,0,.6)}
+  .present-hud{position:fixed; bottom:18px; right:22px; color:rgba(255,255,255,.55); font-size:12px; letter-spacing:.03em; font-variant-numeric:tabular-nums; display:flex; gap:14px; align-items:center}
+  .present-hud .pbtn{background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); color:rgba(255,255,255,.7); width:28px; height:28px; border-radius:4px}
+  .present-hud .pbtn:hover{background:rgba(255,255,255,.16)}
+
+  /* ---------- Help ---------- */
+  .overlay{position:fixed; inset:0; background:rgba(20,20,20,.42); z-index:300; display:none; align-items:center; justify-content:center; padding:24px}
+  .overlay.show{display:flex}
+  .sheet{background:var(--panel); border-radius:6px; width:min(620px,100%); max-height:86vh; overflow:auto; box-shadow:0 24px 70px rgba(0,0,0,.3)}
+  .sheet-head{display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--line)}
+  .sheet-head h2{margin:0; font-size:15px; font-weight:600}
+  .sheet-body{padding:8px 22px 22px}
+  .keys{display:grid; grid-template-columns:1fr 1fr; gap:0 36px}
+  .keys h3{grid-column:1/-1; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:18px 0 6px}
+  .keys .kr{display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px dotted var(--line)}
+  .keys .kr span{color:var(--ink-2)}
+  kbd{font-family:var(--ui); font-size:11px; background:var(--panel-2); border:1px solid var(--line-2); border-bottom-width:2px; border-radius:4px; padding:2px 6px; color:var(--ink); white-space:nowrap}
+  .x-btn{border:none; background:none; width:30px; height:30px; border-radius:4px; color:var(--muted)}
+  .x-btn:hover{background:var(--hover); color:var(--ink)}
+
+  /* toast */
+  #toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); background:#1a1a1a; color:#fff; padding:10px 16px; border-radius:6px; font-size:12px; opacity:0; pointer-events:none; transition:.22s ease; z-index:400; box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  #toast.busy::before{content:""; display:inline-block; width:11px; height:11px; margin-right:8px; vertical-align:-1px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  svg{display:block}
+
+  /* ---------- Keyboard focus ---------- */
+  :focus{outline:none}
+  :focus-visible{outline:2px solid var(--ink); outline-offset:2px; border-radius:var(--radius)}
+  .thumb:focus-visible{outline-offset:3px}
+  .present-hud .pbtn:focus-visible{outline-color:#fff}
+
+  /* ---------- Save status ---------- */
+  .save-status{display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 6px; color:var(--muted); font-size:11px; white-space:nowrap; user-select:none}
+  .save-status i{width:6px; height:6px; border-radius:50%; background:var(--muted); flex:none}
+  .save-status.saved i{background:#3a9d5d}
+  .save-status.saving i{background:#c79a3a; animation:pulse 1s ease-in-out infinite}
+  .save-status.off{color:#b0455e}
+  .save-status.off i{background:#b0455e}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+  /* ---------- Slide thumbnail actions + reorder ---------- */
+  .thumb-wrap{cursor:grab; position:relative}
+  .thumb-wrap.dragging{opacity:.4}
+  .thumb-wrap.drop-before::before, .thumb-wrap.drop-after::after{content:""; position:absolute; left:22px; right:0; height:2px; background:var(--ink); border-radius:2px}
+  .thumb-wrap.drop-before::before{top:-5px}
+  .thumb-wrap.drop-after::after{bottom:-5px}
+  .thumb-actions{position:absolute; top:3px; right:3px; display:none; gap:3px; z-index:4}
+  .thumb-wrap:hover .thumb-actions{display:flex}
+  .ta-btn{width:18px; height:18px; border:none; border-radius:3px; background:rgba(255,255,255,.9); color:var(--ink-2); display:flex; align-items:center; justify-content:center; padding:0; box-shadow:0 1px 3px rgba(0,0,0,.16)}
+  .ta-btn svg{width:11px; height:11px}
+  .ta-btn:hover{background:var(--ink); color:#fff}
+  .ta-del:hover{background:#b03636; color:#fff}
+
+  /* ---------- Empty slide hint ---------- */
+  .stage-empty{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; color:var(--muted); pointer-events:none; text-align:center; font-size:30px; letter-spacing:.01em}
+  .stage-empty small{font-size:19px; color:var(--line-2); max-width:680px; line-height:1.55}
+  .stage-empty b{color:var(--ink-2); font-weight:600}
+
+  /* ---------- Drag image onto stage ---------- */
+  .stage-col.drop-active::after{content:"Отпустите, чтобы вставить медиа"; position:absolute; inset:16px; border:2px dashed var(--ink); border-radius:6px; display:flex; align-items:center; justify-content:center; color:var(--ink); background:rgba(255,255,255,.62); font-size:14px; letter-spacing:.01em; pointer-events:none; z-index:30}
+
+  /* ---------- Present hint + progress ---------- */
+  .present-hint{position:fixed; top:22px; left:50%; transform:translateX(-50%) translateY(-8px); background:rgba(255,255,255,.1); color:rgba(255,255,255,.82); border:1px solid rgba(255,255,255,.16); padding:8px 15px; border-radius:999px; font-size:12px; letter-spacing:.02em; opacity:0; pointer-events:none; transition:opacity .3s ease, transform .3s ease; z-index:210}
+  .present-hint.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  .present-progress{position:fixed; left:0; right:0; bottom:0; height:2px; background:rgba(255,255,255,.1); z-index:210}
+  .present-progress i{display:block; height:100%; width:0; background:rgba(255,255,255,.6); transition:width .25s ease}
+
+  /* ---------- Responsive narrowing ---------- */
+  @media (max-width:1180px){ .body{grid-template-columns:160px 1fr 220px} }
+  @media (max-width:1024px){ .body{grid-template-columns:148px 1fr 206px} }
+
+  /* ---------- Bottom edit bar ---------- */
+  .editbar{display:flex; align-items:flex-start; gap:12px; padding:10px 16px; min-height:88px; background:var(--panel); border-top:1px solid var(--line); user-select:none}
+  .editbar .eb-tag{display:inline-flex; align-items:center; gap:7px; height:34px; flex:none; color:var(--ink-2); font-size:10px; letter-spacing:.08em; text-transform:uppercase; white-space:nowrap}
+  .editbar .eb-tag .ico{width:15px; height:15px; opacity:.75}
+  .editbar.empty .eb-tag{color:var(--muted)}
+  .editbar .eb-input-wrap{flex:1; min-width:0}
+  .editbar .eb-input{width:100%; resize:none; border:1px solid var(--line-2); border-radius:var(--radius); padding:9px 11px; font-family:var(--serif); font-size:15px; line-height:1.45; height:64px; min-height:64px; max-height:240px; outline:none; background:var(--panel-2); color:var(--ink); overflow:auto; display:block; box-sizing:border-box}
+  .editbar .eb-input.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:13px}
+  .editbar .eb-input:focus{border-color:var(--ink); background:var(--panel)}
+  .editbar .eb-input:disabled{background:transparent; color:var(--muted); border-style:dashed; cursor:default}
+  .editbar .eb-hint{flex:none; align-self:center; color:var(--muted); font-size:11px; max-width:300px; text-align:right; line-height:1.5}
+  .editbar .eb-hint code{background:var(--panel-2); padding:1px 5px; border-radius:3px; border:1px solid var(--line); font-size:11px}
+  @media (max-width:1024px){ .editbar .eb-hint{display:none} }
+
+  /* ---------- Slide numbers ---------- */
+  .slide-num{position:absolute; right:30px; bottom:18px; font-family:var(--serif); font-size:22px; color:#9a9a9a; font-variant-numeric:tabular-nums; pointer-events:none; z-index:1}
+
+  @media (prefers-reduced-motion: reduce){*{transition:none !important; animation:none !important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="brand"><span class="mark"></span>Slides v0.5</div>
+    <div class="sep"></div>
+    <button class="tool" data-add="heading" title="Заголовок — H"><span class="ico" data-i="heading"></span>Заголовок</button>
+    <button class="tool" data-add="text" title="Текст — T"><span class="ico" data-i="text"></span>Текст</button>
+    <button class="tool" data-add="math" title="Формула — F"><span class="ico" data-i="math"></span>Формула</button>
+    <button class="tool" data-add="image" title="Изображение — I"><span class="ico" data-i="image"></span>Изображение</button>
+    <div class="spacer"></div>
+    <button class="tool icon-only" id="btn-grid" title="Сетка — G"><span class="ico" data-i="grid"></span></button>
+    <button class="tool icon-only" id="btn-nums" title="Нумерация слайдов"><span class="ico" data-i="nums"></span></button>
+    <button class="tool icon-only" id="btn-fit" title="Авторазмер текста и формул под содержимое (ширина и высота)"><span class="ico" data-i="fit"></span></button>
+    <button class="tool ghost" id="btn-present" title="Показ — P"><span class="ico" data-i="play"></span>Показ</button>
+    <div class="save-status" id="save-status"></div>
+    <div class="menu" id="export-menu">
+      <button class="tool solid" id="btn-export"><span class="ico" data-i="download"></span>Экспорт<span class="ico" data-i="chev"></span></button>
+      <div class="menu-pop">
+        <button class="menu-item" data-exp="html"><span class="ico" data-i="html"></span>HTML (всё внутри) <span class="k">авто-сборка медиа</span></button>
+        <button class="menu-item" data-exp="pptx"><span class="ico" data-i="pptx"></span>PowerPoint (.pptx) <span class="k">опционально</span></button>
+        <div class="menu-div"></div>
+        <button class="menu-item" data-exp="save"><span class="ico" data-i="save"></span>Сохранить проект <span class="k">.json</span></button>
+        <button class="menu-item" data-exp="open"><span class="ico" data-i="open"></span>Открыть проект <span class="k">.json</span></button>
+        <div class="menu-div"></div>
+        <button class="menu-item" data-exp="new"><span class="ico" data-i="plus"></span>Новый документ <span class="k">с нуля</span></button>
+      </div>
+    </div>
+    <div class="sep"></div>
+    <button class="tool icon-only" id="btn-help" title="Горячие клавиши — ?"><span class="ico" data-i="help"></span></button>
+  </header>
+
+  <!-- Body -->
+  <div class="body">
+    <aside class="col rail">
+      <div class="rail-head"><span>Слайды</span><span id="slide-count">1</span></div>
+      <div class="rail-list" id="rail-list"></div>
+      <button class="rail-add" id="rail-add"><span class="ico" data-i="plus"></span>Новый слайд</button>
+    </aside>
+
+    <main class="col stage-col" id="stage-col">
+      <div class="stage-frame">
+        <div id="stage" class="editing"></div>
+        <div class="grid-overlay" id="grid-overlay"><div class="lines"></div><div class="bounds"></div></div>
+      </div>
+    </main>
+
+    <aside class="col insp" id="inspector"></aside>
+  </div>
+
+  <!-- Bottom content edit bar -->
+  <footer class="editbar empty" id="editbar"></footer>
+</div>
+
+<!-- Present overlay -->
+<div class="present" id="present">
+  <div id="present-stage"></div>
+  <div class="present-hint" id="present-hint">← → листать&nbsp;·&nbsp;F полный экран&nbsp;·&nbsp;Esc выход</div>
+  <div class="present-progress" id="present-progress"><i></i></div>
+  <div class="present-hud">
+    <button class="pbtn" id="present-prev" title="Назад">‹</button>
+    <span id="present-counter">1 / 1</span>
+    <button class="pbtn" id="present-next" title="Вперёд">›</button>
+    <button class="pbtn" id="present-full" title="На весь экран — F"><span class="ico" data-i="full"></span></button>
+    <button class="pbtn" id="present-exit" title="Выход — Esc">✕</button>
+  </div>
+</div>
+
+<!-- Help -->
+<div class="overlay" id="help">
+  <div class="sheet">
+    <div class="sheet-head"><h2>Горячие клавиши</h2><button class="x-btn" id="help-close">✕</button></div>
+    <div class="sheet-body">
+      <div class="keys">
+        <h3>Слайды</h3>
+        <div class="kr"><span>Предыдущий / следующий</span><span><kbd>PgUp</kbd> <kbd>PgDn</kbd></span></div>
+        <div class="kr"><span>Листать (без выделения)</span><span><kbd>←</kbd> <kbd>→</kbd></span></div>
+        <div class="kr"><span>Новый слайд</span><kbd>N</kbd></div>
+        <div class="kr"><span>Режим показа</span><kbd>P</kbd></div>
+
+        <h3>Вставка</h3>
+        <div class="kr"><span>Заголовок</span><kbd>H</kbd></div>
+        <div class="kr"><span>Текст</span><kbd>T</kbd></div>
+        <div class="kr"><span>Формула (LaTeX)</span><kbd>F</kbd></div>
+        <div class="kr"><span>Изображение / GIF</span><kbd>I</kbd></div>
+        <div class="kr"><span>Вставить медиа</span><span style="color:var(--muted)">буфер · перетаскивание</span></div>
+
+        <h3>Элемент</h3>
+        <div class="kr"><span>Перемещать по сетке</span><span><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd></span></div>
+        <div class="kr"><span>След. / пред. элемент</span><span><kbd>Tab</kbd> <kbd>⇧Tab</kbd></span></div>
+        <div class="kr"><span>Редактировать содержимое</span><span><kbd>Enter</kbd> · строка снизу</span></div>
+        <div class="kr"><span>Выйти из редактирования</span><span><kbd>Esc</kbd> <kbd>⇧↵</kbd></span></div>
+        <div class="kr"><span>Размер кегля</span><span><kbd>=</kbd> <kbd>−</kbd></span></div>
+        <div class="kr"><span>Высота блока: меньше / больше</span><span><kbd>.</kbd> <kbd>/</kbd></span></div>
+        <div class="kr"><span>Ширина блока: меньше / больше</span><span><kbd>⇧ .</kbd> <kbd>⇧ /</kbd></span></div>
+        <div class="kr"><span>Дублировать</span><kbd>⌘/Ctrl D</kbd></div>
+        <div class="kr"><span>Копировать / вставить</span><span><kbd>⌘/Ctrl C</kbd> <kbd>V</kbd></span></div>
+        <div class="kr"><span>Вырезать</span><kbd>⌘/Ctrl X</kbd></div>
+        <div class="kr"><span>Удалить</span><span><kbd>Del</kbd> <kbd>⌫</kbd></span></div>
+        <div class="kr"><span>Снять выделение</span><kbd>Esc</kbd></div>
+
+        <h3>Прочее</h3>
+        <div class="kr"><span>Отменить / вернуть</span><span><kbd>⌘/Ctrl Z</kbd> <kbd>⇧Z</kbd></span></div>
+        <div class="kr"><span>Показать сетку</span><kbd>G</kbd></div>
+        <div class="kr"><span>Нумерация слайдов</span><span style="color:var(--muted)">кнопка № на панели</span></div>
+        <div class="kr"><span>Авторазмер под содержимое</span><span style="color:var(--muted)">кнопка на панели</span></div>
+        <div class="kr"><span>Сохранить проект</span><kbd>⌘/Ctrl S</kbd></div>
+        <div class="kr"><span>Эта справка</span><kbd>?</kbd></div>
+
+        <h3>Мышь</h3>
+        <div class="kr"><span>Переупорядочить слайды</span><span style="color:var(--muted)">перетащить</span></div>
+        <div class="kr"><span>Дублировать / удалить слайд</span><span style="color:var(--muted)">навести на слайд</span></div>
+        <div class="kr"><span>Добавить изображение</span><span style="color:var(--muted)">файл, ссылка или ⌘/Ctrl V</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<input type="file" id="file-image" accept="image/*" hidden>
+<input type="file" id="file-open" accept="application/json,.json" hidden>
+
+<script>
+"use strict";
+/* ============================================================
+   Slides — academic monochrome slide editor
+   Reference coordinate space: 1280 x 720 (16:9). Everything
+   (editor, thumbnails, present, export) renders this space and
+   only the scale changes.
+   ============================================================ */
+
+/* ---------- Geometry: 16×9 square magnetic grid ---------- */
+const REF_W = 1280, REF_H = 720, COLS = 16, ROWS = 9;
+const CELL = 76;                                   // square cell (px in reference space)
+const GRID_W = CELL * COLS;                        // 1216
+const GRID_H = CELL * ROWS;                        // 684
+const OFF_X = Math.round((REF_W - GRID_W) / 2);    // 32 — small symmetric side margin
+const OFF_Y = Math.round((REF_H - GRID_H) / 2);    // 18 — small symmetric top/bottom margin
+
+const px = {
+  x: gx => OFF_X + gx * CELL,
+  y: gy => OFF_Y + gy * CELL,
+  w: gw => gw * CELL,
+  h: gh => gh * CELL,
+};
+
+/* ---------- Icons (inline, monochrome) ---------- */
+const ICONS = {
+  heading:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 3v10M11 3v10M3 8h8"/></svg>',
+  text:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 4h10M8 4v9M6 13h4"/></svg>',
+  math:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 3h4l3 10 3-10"/><path d="M2.5 13h4" stroke-width="1.4"/></svg>',
+  image:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="3.5" width="11" height="9" rx="1"/><circle cx="6" cy="7" r="1.1"/><path d="M3 11l3-2 3 2.5 2-1.5 2 2"/></svg>',
+  grid:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2.5" y="2.5" width="11" height="11" rx="1"/><path d="M6 2.5v11M10 2.5v11M2.5 6h11M2.5 10h11"/></svg>',
+  play:'<svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5l7 4.5-7 4.5z"/></svg>',
+  download:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2v8M5 7.5l3 3 3-3M3 13h10"/></svg>',
+  chev:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>',
+  help:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M6.4 6.2a1.6 1.6 0 1 1 2.4 1.6c-.6.4-.8.7-.8 1.4M8 11.4v.1"/></svg>',
+  plus:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3v10M3 8h10"/></svg>',
+  trash:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M5 4.5l.6 8.5h4.8L11 4.5"/></svg>',
+  copy:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5.5" y="5.5" width="8" height="8" rx="1"/><path d="M3.5 10.5V3.5h7"/></svg>',
+  front:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5" y="5" width="7" height="7" rx="1" fill="currentColor" stroke="none"/><rect x="3" y="3" width="6" height="6" rx="1"/></svg>',
+  back:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="7" y="7" width="6" height="6" rx="1" fill="currentColor" stroke="none"/></svg>',
+  alignL:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 4h10M3 8h6M3 12h8"/></svg>',
+  alignC:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 4h10M5 8h6M4 12h8"/></svg>',
+  alignR:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 4h10M7 8h6M5 12h8"/></svg>',
+  vTop:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 3.5h10"/><rect x="6" y="6" width="4" height="6" rx="1"/></svg>',
+  vMid:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 8h3M10 8h3"/><rect x="6" y="4.5" width="4" height="7" rx="1"/></svg>',
+  vBot:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 12.5h10"/><rect x="6" y="4" width="4" height="6" rx="1"/></svg>',
+  bold:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 3h4a2.5 2.5 0 0 1 0 5H5zM5 8h4.5a2.5 2.5 0 0 1 0 5H5z"/></svg>',
+  italic:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M7 3h5M4 13h5M9.5 3l-3 10"/></svg>',
+  html:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M6 5.5L3.5 8 6 10.5M10 5.5L12.5 8 10 10.5"/></svg>',
+  pptx:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="3" width="10" height="10" rx="1"/><path d="M6 10V6h2a1.4 1.4 0 0 1 0 2.8H6"/></svg>',
+  save:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3.5 3.5h7L13 6v6.5h-9.5z"/><rect x="6" y="3.5" width="4" height="3"/><rect x="5.5" y="9" width="5" height="3.5"/></svg>',
+  open:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2.5 5.5h4l1.2 1.5H13V12H2.5z"/><path d="M2.5 5.5V4h3l1 1.2"/></svg>',
+  full:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 6V3h3M13 6V3h-3M3 10v3h3M13 10v3h-3"/></svg>',
+  nums:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 4h7M6 8h7M6 12h7"/><path d="M2.2 3.4 3.2 3v3.3"/><path d="M2 11.9c0-.7 1.4-.7 1.4 0 0 .5-1.4 1-1.4 1.6h1.5" stroke-width="1.2"/></svg>',
+  fit:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3.5" y="3.5" width="9" height="9" rx="1"/><path d="M8 5.6v4.8M6.3 7.1 8 5.4l1.7 1.7M6.3 8.9 8 10.6l1.7-1.7"/></svg>',
+};
+function paintIcons(root){
+  (root||document).querySelectorAll('[data-i]').forEach(s=>{ const n=s.dataset.i; if(ICONS[n]) s.innerHTML=ICONS[n]; });
+}
+
+/* ---------- Colors (monochrome scale) ---------- */
+const INK_COLORS = ['#1a1a1a','#5a5a5a','#9a9a9a','#ffffff'];
+
+/* ---------- State ---------- */
+let uid = 1; const nid = () => 'e'+(uid++);
+const TYPE_LABEL = {heading:'Заголовок', text:'Текст', math:'Формула', image:'Изображение'};
+
+function newSlide(){ return { id:'s'+(uid++), elements:[] }; }
+
+function defaultText(type){
+  if(type==='heading') return {text:'Заголовок слайда', fontSize:56, align:'left', valign:'middle', bold:true, italic:false, color:INK_COLORS[0]};
+  return {text:'Основной текст. Измените его в строке ввода снизу.', fontSize:30, align:'left', valign:'middle', bold:false, italic:false, color:INK_COLORS[0]};
+}
+
+const state = {
+  slides:[ seedSlide() ],
+  current:0,
+  selected:null,
+  showGrid:true,
+  slideNumbers:false,
+  autoFit:false,
+};
+function seedSlide(){
+  const s = newSlide();
+  s.elements.push(mk('heading',{gx:1,gy:1,gw:14,gh:1},defaultText('heading')));
+  s.elements.push(mk('math',{gx:1,gy:3,gw:6,gh:2},{latex:'e^{i\\pi}+1=0', fontSize:40, align:'left', color:INK_COLORS[0]}));
+  s.elements.push(mk('text',{gx:1,gy:5,gw:10,gh:2},Object.assign(defaultText('text'),{text:'Тождество Эйлера связывает пять фундаментальных констант.'})));
+  return s;
+}
+function mk(type, pos, props){ return Object.assign({id:nid(), type, gx:pos.gx, gy:pos.gy, gw:pos.gw, gh:pos.gh}, props); }
+
+/* ---------- History (undo / redo) ---------- */
+const history = {undo:[], redo:[]};
+function snapshot(){ return JSON.stringify({slides:state.slides, current:state.current}); }
+function pushHistory(){ history.undo.push(snapshot()); if(history.undo.length>80) history.undo.shift(); history.redo.length=0; }
+function applySnap(str){ const d=JSON.parse(str); state.slides=d.slides; state.current=Math.min(d.current, state.slides.length-1); state.selected=null; }
+function doUndo(){ if(!history.undo.length) return; history.redo.push(snapshot()); applySnap(history.undo.pop()); renderAll(); toast('Отменено'); }
+function doRedo(){ if(!history.redo.length) return; history.undo.push(snapshot()); applySnap(history.redo.pop()); renderAll(); toast('Возвращено'); }
+
+/* ---------- Helpers ---------- */
+const $ = (s,r)=> (r||document).querySelector(s);
+const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
+function curSlide(){ return state.slides[state.current]; }
+function findEl(id){ const s=curSlide(); return s.elements.find(e=>e.id===id); }
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------- KaTeX render cache ---------- */
+const mathCache = new Map();
+function renderMath(latex){
+  const key = latex||'';
+  if(mathCache.has(key)) return mathCache.get(key);
+  let html;
+  try{
+    if(typeof katex==='undefined') throw 0;
+    html = katex.renderToString(latex||'', {displayMode:true, throwOnError:false, output:'htmlAndMathml',
+      errorColor:'#b00', strict:'ignore'});
+  }catch(e){
+    html = '<span style="color:#b00;font-family:monospace">'+escapeHtml(latex||'')+'</span>';
+  }
+  mathCache.set(key, html);
+  return html;
+}
+function mathmlOnly(latex, color){
+  // For self-contained export: extract pure MathML (renders natively, no CSS/fonts needed)
+  try{
+    if(typeof katex==='undefined') throw 0;
+    const s = katex.renderToString(latex||'', {displayMode:true, throwOnError:false, output:'mathml', strict:'ignore'});
+    const t = document.createElement('div'); t.innerHTML = s;
+    const m = t.querySelector('math');
+    if(m){ m.setAttribute('display','block'); if(color && color!=='#1a1a1a') m.setAttribute('mathcolor',color); return m.outerHTML; }
+  }catch(e){}
+  return '<span style="font-family:monospace">'+escapeHtml(latex||'')+'</span>';
+}
+
+/* ============================================================
+   Element rendering (shared by editor / thumbnails / present)
+   ============================================================ */
+function styleText(el, node){
+  const c = node;
+  c.style.fontSize = el.fontSize+'px';
+  c.style.color = el.color;
+  c.style.fontFamily = 'var(--serif)';
+  c.style.fontWeight = el.bold ? '600':'400';
+  c.style.fontStyle = el.italic ? 'italic':'normal';
+  c.style.textAlign = el.align;
+  c.style.lineHeight = '1.18';
+  c.style.justifyContent = el.valign==='middle'?'center': el.valign==='bottom'?'flex-end':'flex-start';
+}
+
+function buildElement(el, mode){
+  // mode: 'edit' | 'view'
+  const d = document.createElement('div');
+  d.className = 'el '+el.type;
+  d.dataset.id = el.id;
+  d.style.left = px.x(el.gx)+'px';
+  d.style.top = px.y(el.gy)+'px';
+  d.style.width = px.w(el.gw)+'px';
+  d.style.height = px.h(el.gh)+'px';
+
+  if(el.type==='text' || el.type==='heading'){
+    const c = document.createElement('div'); c.className='el-content';
+    styleText(el, c);
+    const line = document.createElement('div'); line.className='line';
+    line.textContent = el.text||'';
+    c.appendChild(line);
+    d.appendChild(c);
+  } else if(el.type==='math'){
+    const c = document.createElement('div'); c.className='el-content';
+    c.style.justifyContent = el.align==='center'?'center': el.align==='right'?'flex-end':'flex-start';
+    const host = document.createElement('div'); host.className='katex-host';
+    host.style.fontSize = el.fontSize+'px';
+    host.style.color = el.color;
+    host.style.textAlign = el.align;
+    host.innerHTML = renderMath(el.latex);
+    c.appendChild(host); d.appendChild(c);
+  } else if(el.type==='image'){
+    const frame = document.createElement('div'); frame.className='img-frame';
+    const img = document.createElement('img');
+    img.src = el.src; img.alt = el.alt||'';
+    img.style.objectFit = el.fit||'contain';
+    frame.appendChild(img); d.appendChild(frame);
+  }
+
+  if(mode==='edit'){
+    d.classList.add('selectable');
+    if(state.selected===el.id){
+      d.classList.add('selected');
+      addHandles(d);
+    }
+  }
+  return d;
+}
+
+function addHandles(d){
+  ['nw','n','ne','e','se','s','sw','w'].forEach(dir=>{
+    const h = document.createElement('div'); h.className='handle h-'+dir; h.dataset.dir=dir;
+    d.appendChild(h);
+  });
+}
+
+function slideNumberNode(i){
+  const d = document.createElement('div');
+  d.className = 'slide-num';
+  d.textContent = (i+1);
+  return d;
+}
+
+/* ============================================================
+   Editor stage
+   ============================================================ */
+const stage = $('#stage');
+const stageCol = $('#stage-col');
+const gridOverlay = $('#grid-overlay');
+const gridLines = $('.lines', gridOverlay);
+
+function fitStage(){
+  const pad = 52;
+  const aw = stageCol.clientWidth - pad, ah = stageCol.clientHeight - pad;
+  const scale = Math.max(.1, Math.min(aw/REF_W, ah/REF_H));
+  stage.style.transform = 'scale('+scale+')';
+  const f = stage.parentElement; // stage-frame
+  f.style.width = (REF_W*scale)+'px';
+  f.style.height = (REF_H*scale)+'px';
+  stage.style.position='absolute'; stage.style.left='0'; stage.style.top='0';
+  stage.style.transformOrigin='top left';
+  // overlay matches scaled stage
+  gridOverlay.style.left = px.x(0)*scale+'px';
+  gridOverlay.style.top = px.y(0)*scale+'px';
+  gridOverlay.style.width = GRID_W*scale+'px';
+  gridOverlay.style.height = GRID_H*scale+'px';
+  if(gridLines){ const cs = CELL*scale; gridLines.style.backgroundSize = cs+'px '+cs+'px'; gridLines.style.backgroundPosition='0 0'; }
+  gridOverlay._scale = scale;
+  return scale;
+}
+
+function renderStage(){
+  const scale = fitStage();
+  stage.querySelectorAll('.el').forEach(n=>n.remove());
+  const exHint = stage.querySelector('.stage-empty'); if(exHint) exHint.remove();
+  const exNum = stage.querySelector('.slide-num'); if(exNum) exNum.remove();
+  const s = curSlide();
+  s.elements.forEach(el=>{
+    const node = buildElement(el,'edit');
+    stage.appendChild(node);
+  });
+  if(!s.elements.length){
+    const hint = document.createElement('div'); hint.className='stage-empty';
+    hint.innerHTML = 'Пустой слайд<small>Добавьте элемент: <b>H</b> заголовок · <b>T</b> текст · <b>F</b> формула · <b>I</b> изображение.<br>Изображение можно перетащить на холст или вставить из буфера (⌘/Ctrl V).</small>';
+    stage.appendChild(hint);
+  }
+  if(state.slideNumbers) stage.appendChild(slideNumberNode(state.current));
+  gridOverlay.classList.toggle('show', state.showGrid);
+  bindStageEvents();
+}
+
+/* pointer -> reference coords */
+function evtRef(e){
+  const r = stage.getBoundingClientRect();
+  const scale = r.width / REF_W;
+  return { x:(e.clientX - r.left)/scale, y:(e.clientY - r.top)/scale, scale };
+}
+function refToCol(x){ return Math.round((x - OFF_X)/CELL); }
+function refToRow(y){ return Math.round((y - OFF_Y)/CELL); }
+
+let drag = null;
+function bindStageEvents(){
+  // (re)bind via delegation once
+}
+stage.addEventListener('pointerdown', e=>{
+  const handle = e.target.closest('.handle');
+  const elNode = e.target.closest('.el');
+  if(handle && elNode){
+    startResize(e, elNode, handle.dataset.dir); return;
+  }
+  if(elNode){
+    const id = elNode.dataset.id;
+    if(state.selected!==id){ state.selected=id; renderStage(); renderInspector(); }
+    startMove(e, id);
+  } else {
+    if(state.selected){ state.selected=null; renderStage(); renderInspector(); }
+  }
+});
+stage.addEventListener('dblclick', e=>{
+  const elNode = e.target.closest('.el'); if(!elNode) return;
+  const el = findEl(elNode.dataset.id); if(!el) return;
+  if(el.type==='text'||el.type==='heading'||el.type==='math'){ focusEditbar(); }
+});
+
+function startMove(e, id){
+  const el = findEl(id); if(!el) return;
+  const p = evtRef(e);
+  const grabX = p.x - px.x(el.gx);
+  const grabY = p.y - px.y(el.gy);
+  drag = {mode:'move', id, grabX, grabY, moved:false, start:{gx:el.gx,gy:el.gy}};
+  stage.setPointerCapture(e.pointerId);
+  gridOverlay.classList.add('dragging','show');
+  window.addEventListener('pointermove', onDragMove);
+  window.addEventListener('pointerup', onDragUp, {once:true});
+}
+function startResize(e, elNode, dir){
+  const el = findEl(elNode.dataset.id); if(!el) return;
+  drag = {mode:'resize', id:el.id, dir, start:{gx:el.gx,gy:el.gy,gw:el.gw,gh:el.gh}, moved:false};
+  stage.setPointerCapture(e.pointerId);
+  gridOverlay.classList.add('dragging','show');
+  window.addEventListener('pointermove', onDragMove);
+  window.addEventListener('pointerup', onDragUp, {once:true});
+  e.stopPropagation();
+}
+function onDragMove(e){
+  if(!drag) return;
+  const el = findEl(drag.id); if(!el) return;
+  const p = evtRef(e);
+  if(!drag.moved){ drag.moved=true; pushHistory(); }
+  if(drag.mode==='move'){
+    let gx = refToCol(p.x - drag.grabX + 1);
+    let gy = refToRow(p.y - drag.grabY + 1);
+    gx = clamp(gx, 0, COLS - el.gw);
+    gy = clamp(gy, 0, ROWS - el.gh);
+    el.gx = gx; el.gy = gy;
+  } else {
+    const col = clamp(refToCol(p.x), 0, COLS);
+    const row = clamp(refToRow(p.y), 0, ROWS);
+    const s = drag.start; const d = drag.dir;
+    let x0=s.gx, y0=s.gy, x1=s.gx+s.gw, y1=s.gy+s.gh;
+    if(d.includes('e')) x1 = Math.max(x0+1, col);
+    if(d.includes('w')) x0 = Math.min(x1-1, col);
+    if(d.includes('s')) y1 = Math.max(y0+1, row);
+    if(d.includes('n')) y0 = Math.min(y1-1, row);
+    el.gx=x0; el.gy=y0; el.gw=x1-x0; el.gh=y1-y0;
+  }
+  liveUpdateEl(el);
+}
+function onDragUp(e){
+  gridOverlay.classList.remove('dragging');
+  if(!state.showGrid) gridOverlay.classList.remove('show');
+  window.removeEventListener('pointermove', onDragMove);
+  const changed = drag && drag.moved;
+  drag = null;
+  if(changed){ renderInspector(); scheduleThumb(); }
+}
+function liveUpdateEl(el){
+  const node = stage.querySelector('.el[data-id="'+el.id+'"]');
+  if(!node) return;
+  node.style.left = px.x(el.gx)+'px';
+  node.style.top = px.y(el.gy)+'px';
+  node.style.width = px.w(el.gw)+'px';
+  node.style.height = px.h(el.gh)+'px';
+  syncInspectorPos(el);
+}
+
+/* ---------- Bottom edit bar (single place to edit element content) ---------- */
+const editbar = $('#editbar');
+function autoGrow(t){ t.style.height='auto'; t.style.height=Math.max(64, Math.min(t.scrollHeight, 240))+'px'; }
+function focusEditbar(){
+  const inp = $('#eb-input', editbar);
+  if(inp && !inp.disabled){ inp.focus(); const v=inp.value; try{ inp.setSelectionRange(v.length, v.length); }catch(e){} }
+}
+function renderEditbar(){
+  const el = state.selected ? findEl(state.selected) : null;
+  const editable = !!el && (el.type==='text'||el.type==='heading'||el.type==='math');
+  // Preserve caret: don't rebuild while the user is typing into this same element
+  const active = document.activeElement;
+  if(active && active.id==='eb-input' && editable && active.dataset.id===el.id) return;
+
+  if(!editable){
+    editbar.className = 'editbar empty';
+    const ph = el ? 'У изображения нет текстового содержимого' : 'Выделите текст, заголовок или формулу, чтобы изменить содержимое здесь';
+    editbar.innerHTML =
+      '<div class="eb-tag"><span class="ico" data-i="text"></span><span>'+(el?'Нет содержимого':'Содержимое')+'</span></div>'+
+      '<div class="eb-input-wrap"><textarea class="eb-input" id="eb-input" disabled placeholder="'+ph+'"></textarea></div>';
+    paintIcons(editbar);
+    return;
+  }
+
+  const isMath = el.type==='math';
+  const icon = isMath ? 'math' : (el.type==='heading' ? 'heading' : 'text');
+  const label = isMath ? 'Формула · LaTeX' : (el.type==='heading' ? 'Заголовок' : 'Текст');
+  const ph = isMath ? 'Формула в LaTeX: \\frac{a}{b}, \\int_0^1 x\\,dx …' : 'Введите текст…';
+  editbar.className = 'editbar';
+  editbar.innerHTML =
+    '<div class="eb-tag"><span class="ico" data-i="'+icon+'"></span><span>'+label+'</span></div>'+
+    '<div class="eb-input-wrap"><textarea class="eb-input'+(isMath?' mono':'')+'" id="eb-input" spellcheck="'+(isMath?'false':'true')+'" placeholder="'+ph+'"></textarea></div>'+
+    (isMath
+      ? '<div class="eb-hint"><code>\\frac{a}{b}</code> · <code>\\sum_{i=1}^{n}</code> · <code>\\sqrt{x}</code><br>Shift ↵ — выйти</div>'
+      : '<div class="eb-hint">↵ — перенос строки · Shift ↵ — выйти</div>');
+  const inp = $('#eb-input', editbar);
+  inp.value = isMath ? (el.latex||'') : (el.text||'');
+  inp.dataset.id = el.id;
+  paintIcons(editbar);
+  autoGrow(inp);
+  bindEditbar(el, inp, isMath);
+}
+function bindEditbar(el, inp, isMath){
+  let started = false;
+  inp.addEventListener('focus', ()=>{ started=false; });
+  inp.addEventListener('input', ()=>{
+    if(!started){ started=true; pushHistory(); }
+    if(isMath){ el.latex=inp.value; refreshEl(el, true); }
+    else { el.text=inp.value; refreshEl(el, false); }
+    autoGrow(inp);
+    scheduleSave();
+  });
+  inp.addEventListener('keydown', e=>{
+    if(e.key==='Escape'){ e.preventDefault(); inp.blur(); }
+    else if(e.key==='Enter' && e.shiftKey){ e.preventDefault(); inp.blur(); }
+  });
+}
+
+/* ============================================================
+   Inspector
+   ============================================================ */
+const inspector = $('#inspector');
+function renderInspector(){
+  const el = state.selected ? findEl(state.selected) : null;
+  if(!el){
+    inspector.innerHTML =
+      '<div class="insp-empty"><span class="ico" data-i="text"></span>'+
+      'Выберите элемент, чтобы изменить его,<br>или вставьте новый: '+
+      '<kbd>H</kbd> <kbd>T</kbd> <kbd>F</kbd> <kbd>I</kbd></div>';
+    paintIcons(inspector);
+    renderEditbar();
+    return;
+  }
+  let html = '';
+  html += '<div class="group"><div class="group-title">Элемент<span class="badge">'+TYPE_LABEL[el.type]+'</span></div>';
+  html += '<div class="row"><div class="seg grow">'+
+    '<button data-act="front" title="На передний план"><span class="ico" data-i="front"></span></button>'+
+    '<button data-act="back" title="На задний план"><span class="ico" data-i="back"></span></button>'+
+    '<button data-act="dup" title="Дублировать"><span class="ico" data-i="copy"></span></button>'+
+    '<button data-act="del" class="del-btn" title="Удалить"><span class="ico" data-i="trash"></span></button>'+
+    '</div></div></div>';
+
+  if(el.type==='text' || el.type==='heading'){
+    html += '<div class="group"><div class="group-title">Текст</div>';
+    html += sizeRow('Кегль', el.fontSize, 6, 160);
+    html += '<div class="row"><div class="lbl">Гориз.</div>'+segAlign(el.align)+'</div>';
+    html += '<div class="row"><div class="lbl">Верт.</div>'+segValign(el.valign)+'</div>';
+    html += '<div class="row"><div class="lbl">Стиль</div><div class="seg">'+
+      '<button data-style="bold" class="'+(el.bold?'on':'')+'"><span class="ico" data-i="bold"></span></button>'+
+      '<button data-style="italic" class="'+(el.italic?'on':'')+'"><span class="ico" data-i="italic"></span></button>'+
+      '</div></div>';
+    html += '<div class="row"><div class="lbl">Цвет</div>'+swatches(el.color)+'</div>';
+    html += '</div>';
+  } else if(el.type==='math'){
+    html += '<div class="group"><div class="group-title">Формула</div>';
+    html += '<div class="tex-hint">Содержимое формулы (LaTeX) — в строке ввода снизу.</div>';
+    html += sizeRow('Размер', el.fontSize, 10, 160);
+    html += '<div class="row"><div class="lbl">Выравн.</div>'+segAlign(el.align)+'</div>';
+    html += '<div class="row"><div class="lbl">Цвет</div>'+swatches(el.color)+'</div>';
+    html += '</div>';
+  } else if(el.type==='image'){
+    html += '<div class="group"><div class="group-title">Изображение</div>';
+    html += '<button class="full-btn" data-act="replace"><span class="ico" data-i="image"></span>Заменить файл</button>';
+    html += '<div class="row" style="margin-top:9px"><div class="lbl">Кадр</div><div class="seg grow">'+
+      '<button data-fit="contain" class="'+((el.fit||'contain')==='contain'?'on':'')+'">Целиком</button>'+
+      '<button data-fit="cover" class="'+(el.fit==='cover'?'on':'')+'">Заполнить</button>'+
+      '</div></div>';
+    html += '<div class="tex-hint">Рамка с тенью применяется автоматически ко всем изображениям и GIF.</div>';
+    html += '</div>';
+  }
+
+  // Position group
+  html += '<div class="group"><div class="group-title">Положение · сетка</div><div class="pos-grid">'+
+    posCell('X','gx',el.gx)+posCell('Y','gy',el.gy)+posCell('Ш','gw',el.gw)+posCell('В','gh',el.gh)+
+    '</div></div>';
+
+  inspector.innerHTML = html;
+  paintIcons(inspector);
+  bindInspector(el);
+  renderEditbar();
+}
+
+function sizeRow(label,val,min,max){
+  return '<div class="row"><div class="lbl">'+label+'</div>'+
+    '<div class="stepper"><button data-step="fontSize:-2">−</button>'+
+    '<input type="number" data-num="fontSize" value="'+val+'" min="'+min+'" max="'+max+'">'+
+    '<button data-step="fontSize:2">+</button></div></div>';
+}
+function segAlign(a){
+  return '<div class="seg">'+
+    '<button data-align="left" class="'+(a==='left'?'on':'')+'"><span class="ico" data-i="alignL"></span></button>'+
+    '<button data-align="center" class="'+(a==='center'?'on':'')+'"><span class="ico" data-i="alignC"></span></button>'+
+    '<button data-align="right" class="'+(a==='right'?'on':'')+'"><span class="ico" data-i="alignR"></span></button>'+
+    '</div>';
+}
+function segValign(v){
+  return '<div class="seg">'+
+    '<button data-valign="top" class="'+((v||'top')==='top'?'on':'')+'"><span class="ico" data-i="vTop"></span></button>'+
+    '<button data-valign="middle" class="'+(v==='middle'?'on':'')+'"><span class="ico" data-i="vMid"></span></button>'+
+    '<button data-valign="bottom" class="'+(v==='bottom'?'on':'')+'"><span class="ico" data-i="vBot"></span></button>'+
+    '</div>';
+}
+function swatches(color){
+  return '<div class="swatches">'+INK_COLORS.map(c=>
+    '<button class="sw '+(c===color?'on':'')+'" data-color="'+c+'" style="background:'+c+';'+(c==='#ffffff'?'border-color:#ccc':'')+'"></button>'
+  ).join('')+'</div>';
+}
+function posCell(label,key,val){
+  return '<div class="cell"><div class="lbl">'+label+'</div>'+
+    '<div class="stepper"><input type="number" data-pos="'+key+'" value="'+val+'"></div></div>';
+}
+
+function bindInspector(el){
+  // actions
+  $$('[data-act]',inspector).forEach(b=> b.addEventListener('click',()=>{
+    const a=b.dataset.act;
+    if(a==='del'){ deleteSelected(); }
+    else if(a==='dup'){ duplicateSelected(); }
+    else if(a==='front'){ pushHistory(); zorder(1); }
+    else if(a==='back'){ pushHistory(); zorder(-1); }
+    else if(a==='replace'){ replaceImageFor=el.id; $('#file-image').click(); }
+  }));
+  $('.del-btn',inspector)?.classList.add('danger');
+  // step buttons
+  $$('[data-step]',inspector).forEach(b=> b.addEventListener('click',()=>{
+    const [k,delta]=b.dataset.step.split(':'); pushHistory();
+    el[k]=clamp((el[k]||0)+Number(delta), 6, 200); refreshEl(el); renderInspector();
+  }));
+  // number inputs
+  $$('[data-num]',inspector).forEach(inp=>{
+    inp.addEventListener('change',()=>{ pushHistory(); el[inp.dataset.num]=clamp(Number(inp.value)||el[inp.dataset.num],6,200); refreshEl(el); });
+  });
+  // align / valign / style / color / fit
+  $$('[data-align]',inspector).forEach(b=> b.addEventListener('click',()=>{ pushHistory(); el.align=b.dataset.align; refreshEl(el); renderInspector(); }));
+  $$('[data-valign]',inspector).forEach(b=> b.addEventListener('click',()=>{ pushHistory(); el.valign=b.dataset.valign; refreshEl(el); renderInspector(); }));
+  $$('[data-style]',inspector).forEach(b=> b.addEventListener('click',()=>{ pushHistory(); el[b.dataset.style]=!el[b.dataset.style]; refreshEl(el); renderInspector(); }));
+  $$('[data-color]',inspector).forEach(b=> b.addEventListener('click',()=>{ pushHistory(); el.color=b.dataset.color; refreshEl(el); renderInspector(); }));
+  $$('[data-fit]',inspector).forEach(b=> b.addEventListener('click',()=>{ pushHistory(); el.fit=b.dataset.fit; refreshEl(el); renderInspector(); }));
+  // position
+  $$('[data-pos]',inspector).forEach(inp=>{
+    inp.addEventListener('change',()=>{
+      pushHistory();
+      let v=Math.round(Number(inp.value));
+      const k=inp.dataset.pos;
+      if(k==='gw') el.gw=clamp(v,1,COLS-el.gx);
+      else if(k==='gh') el.gh=clamp(v,1,ROWS-el.gy);
+      else if(k==='gx') el.gx=clamp(v,0,COLS-el.gw);
+      else if(k==='gy') el.gy=clamp(v,0,ROWS-el.gh);
+      refreshEl(el); renderInspector();
+    });
+  });
+}
+function syncInspectorPos(el){
+  $$('[data-pos]',inspector).forEach(inp=>{ inp.value = el[inp.dataset.pos]; });
+}
+/* ---------- Auto-fit element size to content, given the font size (кегль) ---------- */
+let _measureHost = null;
+function measureHost(){
+  if(_measureHost && _measureHost.isConnected) return _measureHost;
+  const m = document.createElement('div');
+  m.style.cssText = 'position:fixed;left:-99999px;top:0;visibility:hidden;pointer-events:none';
+  document.body.appendChild(m);
+  _measureHost = m; return m;
+}
+function isTextLike(el){ return el && (el.type==='text'||el.type==='heading'||el.type==='math'); }
+function naturalTextHeight(el){
+  const host = measureHost();
+  const box = document.createElement('div');
+  box.style.cssText = 'width:'+px.w(el.gw)+'px;box-sizing:border-box';
+  const content = document.createElement('div');
+  content.style.cssText = 'padding:2px 4px;box-sizing:border-box;width:100%';
+  const line = document.createElement('div');
+  line.style.cssText = 'width:100%;white-space:pre-wrap;word-break:break-word;font-family:var(--serif);line-height:1.18;'+
+    'font-size:'+el.fontSize+'px;font-weight:'+(el.bold?600:400)+';font-style:'+(el.italic?'italic':'normal')+';text-align:'+el.align+'';
+  line.textContent = el.text && el.text.length ? el.text : ' ';
+  content.appendChild(line); box.appendChild(content); host.appendChild(box);
+  const h = box.getBoundingClientRect().height;
+  host.removeChild(box);
+  return h;
+}
+function naturalTextWidth(el){
+  // intrinsic width of the content with no wrapping (widest explicit line)
+  const host = measureHost();
+  const probe = document.createElement('div');
+  probe.style.cssText = 'display:inline-block;white-space:pre;font-family:var(--serif);line-height:1.18;'+
+    'font-size:'+el.fontSize+'px;font-weight:'+(el.bold?600:400)+';font-style:'+(el.italic?'italic':'normal');
+  probe.textContent = el.text && el.text.length ? el.text : ' ';
+  host.appendChild(probe);
+  const w = probe.getBoundingClientRect().width;
+  host.removeChild(probe);
+  return w;
+}
+function naturalMathSize(el){
+  const host = measureHost();
+  const box = document.createElement('div');
+  box.style.cssText = 'display:inline-block;font-size:'+el.fontSize+'px;color:#000';
+  box.innerHTML = renderMath(el.latex);
+  const kd = box.querySelector('.katex-display'); if(kd) kd.style.margin = '0';
+  host.appendChild(box);
+  const r = box.getBoundingClientRect();
+  host.removeChild(box);
+  return { w:r.width, h:r.height };
+}
+function applyAutoFit(el){
+  if(el.type==='text'||el.type==='heading'){
+    // --- width: hug the content, capped to the grid, keeping the visual anchor ---
+    const oldGx = el.gx, oldGw = el.gw;
+    const naturalW = naturalTextWidth(el);
+    const gw = clamp(Math.ceil((naturalW + 8 + 0.5)/CELL), 1, COLS); // +8 ≈ horizontal padding
+    let gx = oldGx;
+    if(el.align==='center')      gx = Math.round(oldGx + oldGw/2 - gw/2);
+    else if(el.align==='right')  gx = (oldGx + oldGw) - gw;
+    el.gw = gw;
+    el.gx = clamp(gx, 0, COLS - gw);
+    // --- height: measured at the resolved width ---
+    const h = naturalTextHeight(el);
+    const gh = clamp(Math.ceil((h + 0.5)/CELL), 1, ROWS);
+    el.gh = gh;
+    el.gy = clamp(el.gy, 0, ROWS-gh);
+  } else if(el.type==='math'){
+    const s = naturalMathSize(el);
+    if(!s.w || !s.h) return; // KaTeX not ready yet — keep current box
+    const gw = clamp(Math.ceil((s.w + 2)/CELL), 1, COLS);
+    const gh = clamp(Math.ceil((s.h + 2)/CELL), 1, ROWS);
+    el.gw = gw; el.gh = gh;
+    el.gx = clamp(el.gx, 0, COLS-gw);
+    el.gy = clamp(el.gy, 0, ROWS-gh);
+  }
+}
+function autoFitAll(){
+  state.slides.forEach(s=> s.elements.forEach(el=>{ if(isTextLike(el)) applyAutoFit(el); }));
+}
+
+function refreshEl(el, mathChanged){
+  if(mathChanged) mathCache.delete(el.latex);
+  if(state.autoFit && isTextLike(el)){ applyAutoFit(el); syncInspectorPos(el); }
+  const node = stage.querySelector('.el[data-id="'+el.id+'"]');
+  if(node){
+    const fresh = buildElement(el,'edit');
+    node.replaceWith(fresh);
+  }
+  scheduleThumb();
+}
+
+/* ---------- z-order ---------- */
+function zorder(dir){
+  const s=curSlide(); const i=s.elements.findIndex(e=>e.id===state.selected); if(i<0) return;
+  if(dir>0){ s.elements.push(s.elements.splice(i,1)[0]); }
+  else { s.elements.unshift(s.elements.splice(i,1)[0]); }
+  renderStage();
+}
+
+/* ============================================================
+   Element creation
+   ============================================================ */
+let replaceImageFor = null;
+function centeredPos(gw,gh){
+  return { gx:clamp(Math.round((COLS-gw)/2),0,COLS-gw), gy:clamp(Math.round((ROWS-gh)/2),0,ROWS-gh), gw, gh };
+}
+function addElement(type){
+  if(type==='image'){ replaceImageFor=null; $('#file-image').click(); return; }
+  pushHistory();
+  let el;
+  if(type==='heading') el = mk('heading', {gx:1,gy:1,gw:14,gh:1}, defaultText('heading'));
+  else if(type==='text') el = mk('text', centeredPos(8,2), defaultText('text'));
+  else if(type==='math') el = mk('math', centeredPos(6,2), {latex:'e^\{i\\pi\}+1=0', fontSize:42, align:'center', color:INK_COLORS[0]});
+  curSlide().elements.push(el);
+  state.selected = el.id;
+  if(state.autoFit && isTextLike(el)) applyAutoFit(el);
+  renderStage(); renderInspector(); scheduleThumb();
+}
+
+function placeImage(dataURL, ar, name){
+  if(replaceImageFor){
+    const el=findEl(replaceImageFor); replaceImageFor=null;
+    if(el){ pushHistory(); el.src=dataURL; refreshEl(el); }
+    return;
+  }
+  ar = ar || 1.5;
+  // size frame to image aspect within the grid
+  let gw = clamp(Math.round(ar>=1?7:4),1,COLS);
+  let gh = clamp(Math.round(gw/ar),1,ROWS);
+  if(gh<1) gh=1;
+  pushHistory();
+  const pos = centeredPos(gw,gh);
+  const el = mk('image', pos, {src:dataURL, fit:'contain', alt:name||''});
+  curSlide().elements.push(el);
+  state.selected=el.id;
+  renderStage(); renderInspector(); scheduleThumb();
+}
+function addImageFromDataURL(dataURL, name){
+  const img = new Image();
+  img.onload = ()=> placeImage(dataURL, img.naturalWidth/img.naturalHeight, name);
+  img.onerror = ()=> toast('Не удалось загрузить изображение');
+  img.src = dataURL;
+}
+function addImageFromFile(file){
+  if(!file || !/^image\//.test(file.type)){ if(file) toast('Это не изображение'); return; }
+  const reader = new FileReader();
+  reader.onload = ()=> addImageFromDataURL(reader.result, file.name);
+  reader.readAsDataURL(file);
+}
+function addImageFromURL(url){
+  if(!url) return;
+  if(/^data:image\//i.test(url)){ addImageFromDataURL(url, 'image'); return; }
+  // Try to inline a remote image as a data URL so exports stay self-contained.
+  const probe = new Image();
+  probe.crossOrigin = 'anonymous';
+  probe.onload = ()=>{
+    try{
+      const c = document.createElement('canvas');
+      c.width = probe.naturalWidth; c.height = probe.naturalHeight;
+      c.getContext('2d').drawImage(probe, 0, 0);
+      placeImage(c.toDataURL('image/png'), probe.naturalWidth/probe.naturalHeight, 'image');
+    }catch(e){
+      // cross-origin without CORS headers — keep the original URL as the source
+      placeImage(url, probe.naturalWidth/probe.naturalHeight, 'image');
+      toast('Вставлено по ссылке (без встраивания)');
+    }
+  };
+  probe.onerror = ()=>{
+    // CORS-restricted load failed — retry plainly and reference the URL directly
+    const plain = new Image();
+    plain.onload = ()=>{ placeImage(url, plain.naturalWidth/plain.naturalHeight, 'image'); toast('Вставлено по ссылке (без встраивания)'); };
+    plain.onerror = ()=> toast('Не удалось загрузить изображение по ссылке');
+    plain.src = url;
+  };
+  probe.src = url;
+}
+
+$('#file-image').addEventListener('change', e=>{
+  const file = e.target.files[0]; e.target.value='';
+  addImageFromFile(file);
+});
+
+/* drag media (file or image from a web page) directly onto the canvas */
+stageCol.addEventListener('dragover', e=>{
+  const types = e.dataTransfer ? Array.from(e.dataTransfer.types||[]) : [];
+  if(types.indexOf('Files')>-1 || types.indexOf('text/uri-list')>-1 || types.indexOf('text/html')>-1){
+    e.preventDefault(); e.dataTransfer.dropEffect='copy'; stageCol.classList.add('drop-active');
+  }
+});
+stageCol.addEventListener('dragleave', e=>{ if(e.target===stageCol) stageCol.classList.remove('drop-active'); });
+stageCol.addEventListener('drop', e=>{
+  stageCol.classList.remove('drop-active');
+  const dt = e.dataTransfer; if(!dt) return;
+  // 1) dropped image file(s)
+  const file = dt.files && dt.files.length
+    ? Array.prototype.slice.call(dt.files).find(f=>/^image\//.test(f.type)) : null;
+  if(file){ e.preventDefault(); replaceImageFor=null; addImageFromFile(file); return; }
+  // 2) image dragged from a web page (URL in uri-list / <img> in text/html / plain URL)
+  let url='';
+  try{ url = dt.getData('text/uri-list') || ''; }catch(_){}
+  if(!url){ try{
+    const html = dt.getData('text/html') || '';
+    const m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+    if(m) url = m[1];
+  }catch(_){} }
+  if(!url){ try{
+    const t = (dt.getData('text/plain')||'').trim();
+    if(/^(https?:|data:image\/)/i.test(t)) url = t;
+  }catch(_){} }
+  url = (url||'').split('\n')[0].trim();
+  if(url){ e.preventDefault(); replaceImageFor=null; addImageFromURL(url); }
+});
+
+/* paste media (image) from the system clipboard — screenshots, copied images, etc. */
+document.addEventListener('paste', e=>{
+  if(present.classList.contains('show')) return;
+  if(isTyping()) return;                       // let inputs/textarea paste text normally
+  const dt = e.clipboardData; if(!dt) return;
+  let imgFile = dt.files && dt.files.length
+    ? Array.prototype.slice.call(dt.files).find(f=>/^image\//.test(f.type)) : null;
+  if(!imgFile && dt.items){
+    for(const it of dt.items){
+      if(it.kind==='file' && /^image\//.test(it.type)){ imgFile = it.getAsFile(); break; }
+    }
+  }
+  if(imgFile){ e.preventDefault(); replaceImageFor=null; addImageFromFile(imgFile); toast('Изображение вставлено'); return; }
+  // otherwise: maybe a plain image URL on the clipboard
+  let txt=''; try{ txt = (dt.getData('text/plain')||'').trim(); }catch(_){}
+  if(/^(https?:\/\/|data:image\/)/i.test(txt)){ e.preventDefault(); replaceImageFor=null; addImageFromURL(txt.split('\n')[0].trim()); }
+});
+
+function deleteSelected(){
+  const s=curSlide(); const i=s.elements.findIndex(e=>e.id===state.selected); if(i<0) return;
+  pushHistory(); s.elements.splice(i,1); state.selected=null;
+  renderStage(); renderInspector(); scheduleThumb();
+}
+function duplicateSelected(){
+  const el=findEl(state.selected); if(!el) return;
+  pushHistory();
+  const copy = JSON.parse(JSON.stringify(el)); copy.id=nid();
+  copy.gx=clamp(el.gx+1,0,COLS-el.gw); copy.gy=clamp(el.gy+1,0,ROWS-el.gh);
+  curSlide().elements.push(copy); state.selected=copy.id;
+  renderStage(); renderInspector(); scheduleThumb();
+}
+function moveSelected(dx,dy){
+  const el=findEl(state.selected); if(!el) return;
+  pushHistory();
+  el.gx=clamp(el.gx+dx,0,COLS-el.gw);
+  el.gy=clamp(el.gy+dy,0,ROWS-el.gh);
+  liveUpdateEl(el);
+}
+function resizeSelected(dw,dh){
+  const el=findEl(state.selected); if(!el) return;
+  const ngw=clamp(el.gw+dw, 1, COLS-el.gx);
+  const ngh=clamp(el.gh+dh, 1, ROWS-el.gy);
+  if(ngw===el.gw && ngh===el.gh) return;          // already at a grid limit
+  pushHistory();
+  el.gw=ngw; el.gh=ngh;
+  liveUpdateEl(el); scheduleThumb();
+}
+function selectNext(dir){
+  const s=curSlide(); if(!s.elements.length) return;
+  let i=s.elements.findIndex(e=>e.id===state.selected);
+  i = i<0 ? (dir>0?0:s.elements.length-1) : (i+dir+s.elements.length)%s.elements.length;
+  state.selected=s.elements[i].id;
+  renderStage(); renderInspector();
+}
+
+/* ============================================================
+   Slides rail + thumbnails
+   ============================================================ */
+const railList = $('#rail-list');
+let railDrag = null;
+function clearDropHints(){ $$('.thumb-wrap', railList).forEach(w=>w.classList.remove('drop-before','drop-after')); }
+function reorderSlides(from, to){
+  if(from===to || from===to-1){ clearDropHints(); return; }
+  const curId = state.slides[state.current].id;
+  pushHistory();
+  const [m] = state.slides.splice(from,1);
+  if(to>from) to--;
+  state.slides.splice(to,0,m);
+  state.current = state.slides.findIndex(x=>x.id===curId);
+  state.selected = null;
+  renderAll();
+  toast('Порядок слайдов изменён');
+}
+function renderRail(){
+  railList.innerHTML='';
+  state.slides.forEach((s,i)=>{
+    const wrap=document.createElement('div'); wrap.className='thumb-wrap'; wrap.dataset.i=i; wrap.draggable=true;
+    const no=document.createElement('div'); no.className='thumb-no'; no.textContent=i+1;
+    const t=document.createElement('div'); t.className='thumb'+(i===state.current?' active':'');
+    const mini=document.createElement('div'); mini.className='mini';
+    s.elements.forEach(el=> mini.appendChild(buildElement(el,'view')));
+    if(state.slideNumbers) mini.appendChild(slideNumberNode(i));
+    t.appendChild(mini);
+    const acts=document.createElement('div'); acts.className='thumb-actions';
+    const dup=document.createElement('button'); dup.className='ta-btn'; dup.innerHTML=ICONS.copy; dup.title='Дублировать слайд'; dup.draggable=false;
+    dup.addEventListener('click',ev=>{ ev.stopPropagation(); duplicateSlide(i); });
+    const del=document.createElement('button'); del.className='ta-btn ta-del'; del.innerHTML=ICONS.trash; del.title='Удалить слайд'; del.draggable=false;
+    del.addEventListener('click',ev=>{ ev.stopPropagation(); deleteSlide(i); });
+    acts.appendChild(dup); acts.appendChild(del);
+    t.appendChild(acts);
+    t.addEventListener('click',()=> gotoSlide(i));
+    // scale mini to thumb
+    requestAnimationFrame(()=>{ const sc=t.clientWidth/REF_W; mini.style.transform='scale('+sc+')'; });
+    // drag to reorder
+    wrap.addEventListener('dragstart',ev=>{ railDrag=i; wrap.classList.add('dragging'); try{ ev.dataTransfer.effectAllowed='move'; ev.dataTransfer.setData('text/plain',String(i)); }catch(e){} });
+    wrap.addEventListener('dragend',()=>{ railDrag=null; clearDropHints(); $$('.thumb-wrap',railList).forEach(w=>w.classList.remove('dragging')); });
+    wrap.addEventListener('dragover',ev=>{ if(railDrag===null) return; ev.preventDefault(); const r=wrap.getBoundingClientRect(); const after=(ev.clientY-r.top)>r.height/2; clearDropHints(); wrap.classList.add(after?'drop-after':'drop-before'); });
+    wrap.addEventListener('drop',ev=>{ if(railDrag===null) return; ev.preventDefault(); const r=wrap.getBoundingClientRect(); const after=(ev.clientY-r.top)>r.height/2; reorderSlides(railDrag, i+(after?1:0)); });
+    wrap.appendChild(no); wrap.appendChild(t);
+    railList.appendChild(wrap);
+  });
+  $('#slide-count').textContent = state.slides.length;
+}
+let thumbTimer=null;
+function scheduleThumb(){ clearTimeout(thumbTimer); thumbTimer=setTimeout(renderRail, 220); scheduleSave(); }
+
+function addSlide(){
+  pushHistory();
+  state.slides.splice(state.current+1,0,newSlide());
+  state.current++; state.selected=null;
+  renderAll();
+}
+function duplicateSlide(i){
+  pushHistory();
+  const src = state.slides[i];
+  const copy = JSON.parse(JSON.stringify(src));
+  copy.id = 's'+(uid++);
+  copy.elements.forEach(e=> e.id = nid());
+  state.slides.splice(i+1,0,copy);
+  state.current = i+1; state.selected=null;
+  renderAll();
+  toast('Слайд дублирован');
+}
+function newDocument(){
+  pushHistory();
+  state.slides = [ newSlide() ];
+  state.current = 0; state.selected = null;
+  renderAll();
+  toast('Новый документ · ⌘/Ctrl Z вернёт прежний');
+}
+function deleteSlide(i){
+  if(state.slides.length<=1){ toast('Нельзя удалить единственный слайд'); return; }
+  pushHistory();
+  state.slides.splice(i,1);
+  if(state.current>=state.slides.length) state.current=state.slides.length-1;
+  state.selected=null; renderAll();
+}
+function gotoSlide(i){
+  i=clamp(i,0,state.slides.length-1);
+  if(i===state.current) return;
+  state.current=i; state.selected=null;
+  renderStage(); renderInspector(); renderRail();
+  scheduleSave();
+}
+
+/* ============================================================
+   Render all
+   ============================================================ */
+function renderAll(){ renderStage(); renderInspector(); renderRail(); scheduleSave(); }
+
+/* ============================================================
+   Present mode
+   ============================================================ */
+const present = $('#present');
+const presentStage = $('#present-stage');
+let presentIdx = 0;
+function fitPresent(){
+  const scale = Math.min(window.innerWidth/REF_W, window.innerHeight/REF_H);
+  presentStage.style.transform='scale('+scale+')';
+}
+function renderPresent(){
+  presentStage.querySelectorAll('.el').forEach(n=>n.remove());
+  const exNum = presentStage.querySelector('.slide-num'); if(exNum) exNum.remove();
+  const s=state.slides[presentIdx];
+  s.elements.forEach(el=> presentStage.appendChild(buildElement(el,'view')));
+  if(state.slideNumbers) presentStage.appendChild(slideNumberNode(presentIdx));
+  $('#present-counter').textContent=(presentIdx+1)+' / '+state.slides.length;
+  const bar=$('#present-progress i');
+  if(bar){ bar.style.width = (state.slides.length>1 ? (presentIdx/(state.slides.length-1))*100 : 100)+'%'; }
+  fitPresent();
+}
+function openPresent(){
+  presentIdx=state.current; present.classList.add('show'); renderPresent();
+  const h=$('#present-hint');
+  if(h){ h.classList.add('show'); clearTimeout(present._hintT); present._hintT=setTimeout(()=>h.classList.remove('show'), 2800); }
+}
+function closePresent(){
+  present.classList.remove('show');
+  if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+  state.current=presentIdx; renderAll();
+}
+function presentNav(d){ presentIdx=clamp(presentIdx+d,0,state.slides.length-1); renderPresent(); }
+$('#present-prev').onclick=()=>presentNav(-1);
+$('#present-next').onclick=()=>presentNav(1);
+$('#present-exit').onclick=closePresent;
+$('#present-full').onclick=()=>{ if(!document.fullscreenElement) present.requestFullscreen().catch(()=>{}); else document.exitFullscreen(); };
+presentStage.addEventListener('click', ()=>presentNav(1));
+window.addEventListener('resize', ()=>{ if(present.classList.contains('show')) fitPresent(); else fitStage(); });
+
+/* ============================================================
+   Keyboard
+   ============================================================ */
+function isTyping(){
+  const a=document.activeElement;
+  if(!a) return false;
+  return a.tagName==='INPUT' || a.tagName==='TEXTAREA' || a.isContentEditable;
+}
+/* Layout-independent character for physical letter/digit keys.
+   Fixes shortcuts under non-Latin layouts (e.g. Russian ЙЦУКЕН): the physical
+   key position is read from e.code instead of the localized e.key character. */
+function keyChar(e){
+  if(e.code && /^Key[A-Z]$/.test(e.code)) return e.code.charAt(3).toLowerCase();
+  if(e.code && /^Digit[0-9]$/.test(e.code)) return e.code.charAt(5);
+  return (e.key && e.key.length===1) ? e.key.toLowerCase() : '';
+}
+document.addEventListener('keydown', e=>{
+  const ch = keyChar(e);
+  // Present mode
+  if(present.classList.contains('show')){
+    if(e.key==='Escape') closePresent();
+    else if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'||e.key==='Enter'){ e.preventDefault(); presentNav(1); }
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); presentNav(-1); }
+    else if(ch==='f'){ $('#present-full').click(); }
+    return;
+  }
+  // Help overlay
+  if($('#help').classList.contains('show')){
+    if(e.key==='Escape' || e.key==='?' || (e.shiftKey && e.code==='Slash')) $('#help').classList.remove('show');
+    return;
+  }
+
+  const meta = e.metaKey||e.ctrlKey;
+
+  // Undo / redo / save (work everywhere except where native editing applies)
+  if(meta && ch==='z'){ if(!isTyping()){ e.preventDefault(); e.shiftKey?doRedo():doUndo(); } return; }
+  if(meta && ch==='y'){ if(!isTyping()){ e.preventDefault(); doRedo(); } return; }
+  if(meta && ch==='s'){ e.preventDefault(); exportJSON(); return; }
+
+  if(isTyping()){
+    if(e.key==='Escape'){ document.activeElement.blur(); }
+    return;
+  }
+
+  // Clipboard for elements (in-memory). Image paste is handled by the 'paste' event.
+  if(meta && ch==='c'){ if(state.selected){ e.preventDefault(); copyEl(); } return; }
+  if(meta && ch==='x'){ if(state.selected){ e.preventDefault(); cutEl(); } return; }
+  if(meta && ch==='v'){ if(clipboard){ e.preventDefault(); pasteEl(); } return; }
+  if(meta && ch==='d'){ e.preventDefault(); duplicateSelected(); return; }
+
+  // Quick font-size (кегль) nudge with = / − when a text or formula is selected
+  if(!meta && (e.code==='Equal'||e.code==='Minus')){
+    const sel = state.selected ? findEl(state.selected) : null;
+    if(sel && isTextLike(sel)){
+      e.preventDefault();
+      const delta = e.code==='Minus' ? -2 : 2;
+      pushHistory();
+      sel.fontSize = clamp((sel.fontSize||30)+delta, 6, 200);
+      refreshEl(sel); renderInspector();
+      return;
+    }
+  }
+
+  // Resize selected element with the physical . and / keys (layout-independent):
+  //   .  height −   ·   /  height +   ·   ⇧.  width −   ·   ⇧/  width +
+  if(!meta && state.selected && (e.code==='Period'||e.code==='Slash')){
+    e.preventDefault();
+    if(e.code==='Period'){ e.shiftKey ? resizeSelected(-1,0) : resizeSelected(0,-1); }
+    else                 { e.shiftKey ? resizeSelected( 1,0) : resizeSelected(0, 1); }
+    return;
+  }
+
+  // Navigation / structural keys (layout-independent by nature)
+  switch(e.key){
+    case 'ArrowLeft': if(state.selected){ e.preventDefault(); moveSelected(-1,0);} else { e.preventDefault(); gotoSlide(state.current-1);} return;
+    case 'ArrowRight': if(state.selected){ e.preventDefault(); moveSelected(1,0);} else { e.preventDefault(); gotoSlide(state.current+1);} return;
+    case 'ArrowUp': if(state.selected){ e.preventDefault(); moveSelected(0,-1);} return;
+    case 'ArrowDown': if(state.selected){ e.preventDefault(); moveSelected(0,1);} return;
+    case 'PageUp': e.preventDefault(); gotoSlide(state.current-1); return;
+    case 'PageDown': e.preventDefault(); gotoSlide(state.current+1); return;
+    case 'Tab': e.preventDefault(); selectNext(e.shiftKey?-1:1); return;
+    case 'Enter': if(state.selected){ const el=findEl(state.selected); if(el&&(el.type==='text'||el.type==='heading'||el.type==='math')){ e.preventDefault(); focusEditbar(); } } return;
+    case 'Delete': case 'Backspace': if(state.selected){ e.preventDefault(); deleteSelected(); } return;
+    case 'Escape': if(state.selected){ state.selected=null; renderStage(); renderInspector(); } return;
+  }
+
+  // Letter shortcuts (layout-independent via physical key)
+  if(!meta){
+    switch(ch){
+      case 't': addElement('text'); break;
+      case 'h': addElement('heading'); break;
+      case 'f': addElement('math'); break;
+      case 'i': addElement('image'); break;
+      case 'n': addSlide(); break;
+      case 'p': openPresent(); break;
+      case 'g': toggleGrid(); break;
+    }
+  }
+  if(e.key==='?' || (e.shiftKey && e.code==='Slash')) $('#help').classList.add('show');
+});
+
+function toggleGrid(){ state.showGrid=!state.showGrid; gridOverlay.classList.toggle('show',state.showGrid); $('#btn-grid').classList.toggle('on',state.showGrid); }
+
+function toggleSlideNumbers(){
+  state.slideNumbers=!state.slideNumbers;
+  $('#btn-nums').classList.toggle('on', state.slideNumbers);
+  renderStage(); renderRail();
+  if(present.classList.contains('show')) renderPresent();
+  scheduleSave();
+  toast(state.slideNumbers ? 'Нумерация слайдов включена' : 'Нумерация слайдов выключена');
+}
+function toggleAutoFit(){
+  state.autoFit=!state.autoFit;
+  $('#btn-fit').classList.toggle('on', state.autoFit);
+  if(state.autoFit){
+    pushHistory();
+    autoFitAll();
+    toast('Авторазмер включён · ширина и высота под содержимое');
+  } else {
+    toast('Авторазмер выключен');
+  }
+  renderAll();
+}
+
+/* ============================================================
+   Toolbar wiring
+   ============================================================ */
+$$('[data-add]').forEach(b=> b.addEventListener('click',()=> addElement(b.dataset.add)));
+$('#rail-add').addEventListener('click', addSlide);
+$('#btn-present').addEventListener('click', openPresent);
+$('#btn-grid').addEventListener('click', toggleGrid);
+$('#btn-nums').addEventListener('click', toggleSlideNumbers);
+$('#btn-fit').addEventListener('click', toggleAutoFit);
+$('#btn-help').addEventListener('click', ()=> $('#help').classList.add('show'));
+$('#help-close').addEventListener('click', ()=> $('#help').classList.remove('show'));
+$('#help').addEventListener('click', e=>{ if(e.target.id==='help') $('#help').classList.remove('show'); });
+
+// export menu
+const expMenu=$('#export-menu');
+$('#btn-export').addEventListener('click', e=>{ e.stopPropagation(); expMenu.classList.toggle('open'); });
+document.addEventListener('click', ()=> expMenu.classList.remove('open'));
+$$('[data-exp]',expMenu).forEach(b=> b.addEventListener('click',()=>{
+  expMenu.classList.remove('open');
+  const a=b.dataset.exp;
+  if(a==='html') exportHTML();
+  else if(a==='pptx') exportPPTX();
+  else if(a==='save') exportJSON();
+  else if(a==='open') $('#file-open').click();
+  else if(a==='new') newDocument();
+}));
+$('#file-open').addEventListener('change', e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d&&d.slides){ pushHistory(); state.slides=d.slides; state.current=0; state.selected=null; state.slideNumbers=!!d.slideNumbers; state.autoFit=!!d.autoFit; reseedUid(); mathCache.clear(); $('#btn-nums').classList.toggle('on', state.slideNumbers); $('#btn-fit').classList.toggle('on', state.autoFit); if(state.autoFit) autoFitAll(); renderAll(); toast('Проект загружен'); } else toast('Неверный файл'); }catch(err){ toast('Не удалось открыть файл'); } };
+  r.readAsText(f);
+});
+
+/* ---------- toast ---------- */
+let toastTimer=null;
+function toast(msg, busy){
+  const t=$('#toast'); t.textContent=msg; t.classList.toggle('busy',!!busy); t.classList.add('show');
+  clearTimeout(toastTimer); if(!busy) toastTimer=setTimeout(()=>t.classList.remove('show'),1800);
+}
+function hideToast(){ $('#toast').classList.remove('show','busy'); }
+
+/* ---------- download helper ---------- */
+function download(filename, content, mime){
+  const blob = content instanceof Blob ? content : new Blob([content], {type:mime||'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click();
+  a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+/* ============================================================
+   Export: project JSON
+   ============================================================ */
+function exportJSON(){
+  const data = JSON.stringify({version:1, slides:state.slides, slideNumbers:state.slideNumbers, autoFit:state.autoFit}, null, 0);
+  download('presentation.slides.json', data, 'application/json');
+  toast('Проект сохранён');
+}
+
+/* ============================================================
+   Export: self-contained HTML
+   (images are already base64; formulas -> native MathML; nav + scaling inlined)
+   ============================================================ */
+function elToExportHTML(el){
+  const style = 'position:absolute;left:'+px.x(el.gx)+'px;top:'+px.y(el.gy)+'px;width:'+px.w(el.gw)+'px;height:'+px.h(el.gh)+'px;overflow:'+(el.type==='image'?'visible':'hidden')+';';
+  if(el.type==='text'||el.type==='heading'){
+    const jc = el.valign==='middle'?'center':el.valign==='bottom'?'flex-end':'flex-start';
+    const inner='font-size:'+el.fontSize+'px;color:'+el.color+';font-weight:'+(el.bold?600:400)+';font-style:'+(el.italic?'italic':'normal')+';text-align:'+el.align+';line-height:1.18;white-space:pre-wrap;width:100%;';
+    return '<div class="el" style="'+style+'"><div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:'+jc+'"><div style="'+inner+'">'+escapeHtml(el.text||'')+'</div></div></div>';
+  }
+  if(el.type==='math'){
+    const jc = el.align==='center'?'center':el.align==='right'?'flex-end':'flex-start';
+    return '<div class="el" style="'+style+'"><div style="width:100%;height:100%;display:flex;align-items:center;justify-content:'+jc+'"><div style="font-size:'+el.fontSize+'px;color:'+el.color+';overflow:hidden">'+mathmlOnly(el.latex, el.color)+'</div></div></div>';
+  }
+  if(el.type==='image'){
+    return '<div class="el" style="'+style+'"><div class="imgframe"><img src="'+el.src+'" style="object-fit:'+(el.fit||'contain')+'" alt="'+escapeHtml(el.alt||'')+'"></div></div>';
+  }
+  return '';
+}
+
+function buildExportHTML(){
+  const slidesHTML = state.slides.map((s,i)=>
+    '<section class="slide" data-i="'+i+'">'+ s.elements.map(elToExportHTML).join('') + (state.slideNumbers?'<div class="slide-num">'+(i+1)+'</div>':'') +'</section>'
+  ).join('\n');
+
+  const css =
+'*{box-sizing:border-box;margin:0;padding:0}'+
+'html,body{height:100%}'+
+'body{background:#0e0e0e;font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Palatino,Georgia,"Times New Roman",serif;overflow:hidden;display:flex;align-items:center;justify-content:center}'+
+'#deck{position:relative;width:'+REF_W+'px;height:'+REF_H+'px;flex:none;transform-origin:center center}'+
+'.slide{position:absolute;left:0;top:0;width:'+REF_W+'px;height:'+REF_H+'px;background:#fff;transform-origin:top left;opacity:0;pointer-events:none;transition:opacity .25s ease}'+
+'.slide.active{opacity:1;pointer-events:auto}'+
+'.el math{font-size:1em}'+
+'.slide-num{position:absolute;right:30px;bottom:18px;font-size:22px;color:#9a9a9a;font-variant-numeric:tabular-nums}'+
+'.imgframe{width:100%;height:100%;background:#fff;padding:12px;border:1px solid #e7e7e4;box-shadow:0 10px 30px rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.10)}'+
+'.imgframe img{display:block;width:100%;height:100%}'+
+'#hud{position:fixed;bottom:16px;right:20px;color:rgba(255,255,255,.5);font-family:system-ui,sans-serif;font-size:12px;letter-spacing:.04em;font-variant-numeric:tabular-nums;display:flex;gap:14px;align-items:center}'+
+'#hud button{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);width:28px;height:28px;border-radius:5px;cursor:pointer;font-size:15px}'+
+'#hud button:hover{background:rgba(255,255,255,.18)}'+
+'@media print{body{background:#fff}.slide{position:relative;opacity:1;page-break-after:always;transform:none!important}#deck{width:auto;height:auto}#hud{display:none}}';
+
+  const js =
+'(function(){'+
+'var deck=document.getElementById("deck"),slides=Array.prototype.slice.call(document.querySelectorAll(".slide"));'+
+'var i=0;'+
+'function fit(){var s=Math.min(innerWidth/'+REF_W+',innerHeight/'+REF_H+');deck.style.transform="scale("+s+")";}'+
+'function show(n){i=Math.max(0,Math.min(slides.length-1,n));slides.forEach(function(s,k){s.classList.toggle("active",k===i);});var c=document.getElementById("ctr");if(c)c.textContent=(i+1)+" / "+slides.length;}'+
+'function nav(d){show(i+d);}'+
+'addEventListener("resize",fit);'+
+'addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"||e.key==="Enter"){e.preventDefault();nav(1);}else if(e.key==="ArrowLeft"||e.key==="PageUp"){e.preventDefault();nav(-1);}else if(e.key==="Home"){show(0);}else if(e.key==="End"){show(slides.length-1);}else if(e.key==="f"||e.key==="F"||e.code==="KeyF"){toggleFull();}});'+
+'deck.addEventListener("click",function(){nav(1);});'+
+'function toggleFull(){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}'+
+'document.getElementById("prev").onclick=function(e){e.stopPropagation();nav(-1);};'+
+'document.getElementById("next").onclick=function(e){e.stopPropagation();nav(1);};'+
+'document.getElementById("full").onclick=function(e){e.stopPropagation();toggleFull();};'+
+'fit();show(0);'+
+'})();';
+
+  return '<!doctype html>\n<html lang="ru"><head><meta charset="utf-8">'+
+    '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+    '<title>Презентация</title><style>'+css+'</style></head><body>'+
+    '<div id="deck">'+slidesHTML+'</div>'+
+    '<div id="hud"><button id="prev" title="Назад">‹</button><span id="ctr">1 / '+state.slides.length+'</span><button id="next" title="Вперёд">›</button><button id="full" title="Полный экран (F)">⛶</button></div>'+
+    '<script>'+js+'<\/script></body></html>';
+}
+function exportHTML(){
+  try{
+    const html = buildExportHTML();
+    download('presentation.html', html, 'text/html');
+    toast('HTML экспортирован · все медиа внутри');
+  }catch(err){ console.error(err); toast('Ошибка экспорта HTML'); }
+}
+
+/* ============================================================
+   Export: PPTX (optional) — PptxGenJS + html2canvas loaded lazily
+   ============================================================ */
+function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('load '+src)); document.head.appendChild(s); }); }
+let libsReady=false;
+async function ensureLibs(){
+  if(libsReady) return;
+  toast('Подготовка библиотек…', true);
+  if(typeof PptxGenJS==='undefined') await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js');
+  if(typeof html2canvas==='undefined') await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  libsReady=true;
+}
+const PXIN = 96; // px per inch at reference
+
+// render a formula to PNG dataURL for PPTX
+async function mathToPNG(latex, color){
+  const host=document.createElement('div');
+  host.style.cssText='position:fixed;left:-9999px;top:0;padding:8px;background:#fff;display:inline-block;font-size:64px;color:'+(color||'#1a1a1a');
+  host.innerHTML = renderMath(latex);
+  document.body.appendChild(host);
+  try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch(e){}
+  const canvas = await html2canvas(host,{backgroundColor:null, scale:2, logging:false});
+  document.body.removeChild(host);
+  return {url:canvas.toDataURL('image/png'), w:canvas.width/2, h:canvas.height/2};
+}
+
+async function exportPPTX(){
+  try{
+    await ensureLibs();
+    toast('Сборка PPTX…', true);
+    const pptx = new PptxGenJS();
+    pptx.defineLayout({name:'REF', width:REF_W/PXIN, height:REF_H/PXIN});
+    pptx.layout='REF';
+
+    for(const s of state.slides){
+      const slide = pptx.addSlide();
+      slide.background = {color:'FFFFFF'};
+      for(const el of s.elements){
+        const x=px.x(el.gx)/PXIN, y=px.y(el.gy)/PXIN, w=px.w(el.gw)/PXIN, h=px.h(el.gh)/PXIN;
+        if(el.type==='text'||el.type==='heading'){
+          slide.addText(el.text||'', {
+            x,y,w,h,
+            fontFace:'Georgia',
+            fontSize: Math.round(el.fontSize*0.72),
+            color: (el.color||'#1a1a1a').replace('#',''),
+            bold: !!el.bold, italic: !!el.italic,
+            align: el.align||'left',
+            valign: el.valign==='middle'?'middle':el.valign==='bottom'?'bottom':'top',
+            lineSpacingMultiple:1.05,
+            wrap:true, autoFit:true, margin:2,
+          });
+        } else if(el.type==='image'){
+          const pad=0.07;
+          slide.addShape(pptx.ShapeType.rect, {x:x-pad,y:y-pad,w:w+pad*2,h:h+pad*2, fill:{color:'FFFFFF'}, line:{color:'E7E7E4',width:0.75},
+            shadow:{type:'outer', color:'000000', opacity:0.28, blur:9, offset:5, angle:90}});
+          slide.addImage({data:el.src, x,y,w,h, sizing:{type:(el.fit==='cover'?'cover':'contain'), w,h}});
+        } else if(el.type==='math'){
+          try{
+            const png = await mathToPNG(el.latex, el.color);
+            const ar = png.w/png.h;
+            let iw=w, ih=w/ar;
+            if(ih>h){ ih=h; iw=h*ar; }
+            const ix = x + (el.align==='center'?(w-iw)/2: el.align==='right'?(w-iw):0);
+            const iy = y + (h-ih)/2;
+            slide.addImage({data:png.url, x:ix, y:iy, w:iw, h:ih});
+          }catch(err){
+            slide.addText(el.latex||'', {x,y,w,h,fontFace:'Courier New',fontSize:Math.round(el.fontSize*0.6),color:'1A1A1A',align:el.align||'left',valign:'middle'});
+          }
+        }
+      }
+      if(state.slideNumbers){
+        slide.addText(String(state.slides.indexOf(s)+1), {x:(REF_W-92)/PXIN, y:(REF_H-56)/PXIN, w:62/PXIN, h:34/PXIN, fontFace:'Georgia', fontSize:16, color:'9A9A9A', align:'right', valign:'middle', margin:0});
+      }
+    }
+    await pptx.writeFile({fileName:'presentation.pptx'});
+    hideToast(); toast('PPTX готов');
+  }catch(err){
+    console.error(err); hideToast();
+    toast('Не удалось собрать PPTX (проверьте доступ к сети)');
+  }
+}
+
+/* ============================================================
+   Autosave (localStorage) + in-memory clipboard
+   ============================================================ */
+const SAVE_KEY='slides.autosave.v1';
+let storageOK=true, lastSaved='', saveTimer=null;
+(function probeStorage(){ try{ const k='__slides_probe__'; localStorage.setItem(k,'1'); localStorage.removeItem(k); }catch(e){ storageOK=false; } })();
+
+function setSaveStatus(kind){
+  const n=$('#save-status'); if(!n) return;
+  if(!storageOK){ n.className='save-status off'; n.innerHTML='<i></i>не сохраняется'; n.title='Локальное сохранение недоступно — экспортируйте проект вручную (.json)'; return; }
+  if(kind==='saving'){ n.className='save-status saving'; n.innerHTML='<i></i>Сохранение…'; n.title='Черновик сохраняется в этом браузере'; }
+  else { n.className='save-status saved'; n.innerHTML='<i></i>Сохранено'; n.title='Черновик автоматически сохранён в этом браузере'; }
+}
+function persist(){
+  if(!storageOK) return;
+  try{
+    const data=JSON.stringify({version:1, slides:state.slides, current:state.current, slideNumbers:state.slideNumbers, autoFit:state.autoFit});
+    if(data!==lastSaved){ localStorage.setItem(SAVE_KEY, data); lastSaved=data; }
+    setSaveStatus('saved');
+  }catch(e){ storageOK=false; setSaveStatus('off'); }
+}
+function scheduleSave(){ if(!storageOK) return; setSaveStatus('saving'); clearTimeout(saveTimer); saveTimer=setTimeout(persist, 600); }
+function restore(){
+  if(!storageOK) return false;
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const d=JSON.parse(raw);
+    if(d && Array.isArray(d.slides) && d.slides.length){
+      state.slides=d.slides;
+      state.current=clamp(d.current||0, 0, d.slides.length-1);
+      state.slideNumbers=!!d.slideNumbers;
+      state.autoFit=!!d.autoFit;
+      lastSaved=raw;
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+function reseedUid(){
+  let max=0;
+  state.slides.forEach(s=>{
+    const m=/\d+/.exec(s.id||''); if(m) max=Math.max(max, +m[0]);
+    (s.elements||[]).forEach(e=>{ const mm=/\d+/.exec(e.id||''); if(mm) max=Math.max(max, +mm[0]); });
+  });
+  uid = Math.max(uid, max+1);
+}
+
+let clipboard=null;
+function copyEl(){ const el=findEl(state.selected); if(!el) return; clipboard=JSON.stringify(el); toast('Скопировано'); }
+function cutEl(){ const el=findEl(state.selected); if(!el) return; clipboard=JSON.stringify(el); deleteSelected(); toast('Вырезано'); }
+function pasteEl(){
+  if(!clipboard) return;
+  let data; try{ data=JSON.parse(clipboard); }catch(e){ return; }
+  pushHistory();
+  data.id=nid();
+  data.gx=clamp((data.gx||0)+1, 0, COLS-(data.gw||1));
+  data.gy=clamp((data.gy||0)+1, 0, ROWS-(data.gh||1));
+  curSlide().elements.push(data);
+  state.selected=data.id;
+  renderStage(); renderInspector(); scheduleThumb();
+  toast('Вставлено');
+}
+
+/* ============================================================
+   Boot
+   ============================================================ */
+function boot(){
+  paintIcons(document);
+  $('#btn-grid').classList.toggle('on', state.showGrid);
+  const restored = restore();
+  reseedUid();
+  $('#btn-nums').classList.toggle('on', state.slideNumbers);
+  $('#btn-fit').classList.toggle('on', state.autoFit);
+  renderAll();
+  setSaveStatus(storageOK ? 'saved' : 'off');
+  if(restored) toast('Восстановлен черновик');
+  // re-render math once KaTeX has surely loaded (initial paint may precede it)
+  let tries=0;
+  const iv=setInterval(()=>{
+    tries++;
+    if(typeof katex!=='undefined'){
+      mathCache.clear();
+      if(state.autoFit) autoFitAll();
+      renderStage(); renderRail();
+      if(present.classList.contains('show')) renderPresent();
+      clearInterval(iv);
+    }
+    if(tries>40) clearInterval(iv);
+  },120);
+  window.addEventListener('resize', ()=>{ if(!present.classList.contains('show')) renderStage(); });
+  window.addEventListener('beforeunload', ()=>{ try{ persist(); }catch(e){} });
+}
+boot();
+</script>
+</body>
+</html>
